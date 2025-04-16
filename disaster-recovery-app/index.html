@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disaster Recovery Inspection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">
+                Disaster Recovery Inspection
+            </h1>
+            <p class="mt-2 text-gray-600">
+                Complete the following checklist to begin the inspection process
+            </p>
+        </header>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Investigation Checklist</h2>
+            <div class="space-y-4" id="checklist">
+                <!-- Checklist items will be inserted here -->
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button
+                    type="button"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    onclick="handleSubmit()"
+                    aria-label="Submit inspection checklist"
+                >
+                    Submit Checklist
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const checklistItems = [
+            { id: '1', label: 'Incident Verification', checked: false },
+            { id: '2', label: 'Safety Assessment', checked: false },
+            { id: '3', label: 'Power Availability Check', checked: false },
+            { id: '4', label: 'PPE Requirements', checked: false },
+            { id: '5', label: 'Occupant Status Review', checked: false }
+        ];
+
+        function renderChecklist() {
+            const container = document.getElementById('checklist');
+            container.innerHTML = checklistItems
+                .map(item => `
+                    <div class="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                         role="checkbox"
+                         aria-checked="${item.checked}">
+                        <input
+                            type="checkbox"
+                            id="${item.id}"
+                            ${item.checked ? 'checked' : ''}
+                            onchange="handleCheckItem('${item.id}')"
+                            class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            aria-label="${item.label}"
+                        />
+                        <label
+                            for="${item.id}"
+                            class="text-gray-700 font-medium cursor-pointer"
+                        >
+                            ${item.label}
+                        </label>
+                    </div>
+                `)
+                .join('');
+        }
+
+        function handleCheckItem(id) {
+            const item = checklistItems.find(item => item.id === id);
+            if (item) {
+                item.checked = !item.checked;
+                renderChecklist();
+            }
+        }
+
+        function handleSubmit() {
+            console.log('Checklist items:', checklistItems);
+            alert('Inspection checklist submitted successfully!');
+        }
+
+        // Initial render
+        renderChecklist();
+    </script>
+</body>
+</html>
