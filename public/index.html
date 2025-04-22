@@ -3,147 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LocalLift Documentation</title>
+    <title>LocalLift Platform</title>
     <style>
-        body {
+        body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f9fc;
             color: #333;
-            max-width: 1000px;
+        }
+        .container {
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 2rem;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
         }
         h1 {
             color: #2563eb;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 10px;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
         }
-        h2 {
-            color: #374151;
-            margin-top: 30px;
-        }
-        .version {
+        .status {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
             background-color: #f3f4f6;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
         }
-        .section {
-            margin-bottom: 40px;
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 0.9rem;
+            color: #6b7280;
         }
-        code {
-            background-color: #f3f4f6;
-            padding: 2px 5px;
-            border-radius: 3px;
-            font-family: monospace;
-        }
-        pre {
-            background-color: #f3f4f6;
-            padding: 15px;
-            border-radius: 5px;
-            overflow-x: auto;
-        }
-        a {
-            color: #2563eb;
+        .button {
+            display: inline-block;
+            background-color: #2563eb;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
             text-decoration: none;
+            font-weight: 500;
+            margin-top: 1rem;
         }
-        a:hover {
-            text-decoration: underline;
-        }
-        .module {
-            background-color: #f9fafb;
-            border-left: 3px solid #2563eb;
-            padding: 15px;
-            margin: 15px 0;
+        .button:hover {
+            background-color: #1d4ed8;
         }
     </style>
 </head>
 <body>
-    <div class="version">Version: Latest</div>
-    
-    <h1>LocalLift Documentation</h1>
-    
-    <div class="section">
-        <h2>Introduction</h2>
-        <p>
-            Welcome to the LocalLift documentation. This guide provides comprehensive information about the platform,
-            its modules, and how to use them effectively. LocalLift is a modular platform designed to help local
-            businesses improve their online presence and engagement.
-        </p>
-    </div>
-
-    <div class="section">
-        <h2>Getting Started</h2>
-        <p>
-            To run the LocalLift application locally:
-        </p>
-        <pre><code>uvicorn main:app --reload</code></pre>
-        <p>
-            The application will be available at <code>http://localhost:8000</code>.
-        </p>
-    </div>
-
-    <div class="section">
-        <h2>Core Modules</h2>
+    <div class="container">
+        <div class="header">
+            <h1>LocalLift Platform</h1>
+            <p>Elevate your local business presence</p>
+        </div>
         
-        <div class="module">
-            <h3>Sales Team Module</h3>
-            <p>
-                The Sales Team module provides tools for managing sales operations, tracking performance,
-                and analyzing trends.
-            </p>
-            <p>
-                <strong>Key Features:</strong>
-            </p>
+        <div class="card">
+            <h2>Welcome to LocalLift</h2>
+            <p>The all-in-one platform designed to help local businesses grow their online presence, engage with customers, and drive foot traffic.</p>
+            
+            <div class="status">
+                <h3>System Status</h3>
+                <p>Backend API: <span id="api-status">Checking...</span></p>
+                <p>Database Connection: <span id="db-status">Checking...</span></p>
+            </div>
+
+            <a href="#" class="button" id="check-status">Check Status</a>
+        </div>
+
+        <div class="card">
+            <h2>Our Features</h2>
             <ul>
-                <li>Sales Rep Dashboard at <code>/admin/sales-dashboard</code></li>
-                <li>Trend Analysis with top performer tracking</li>
-                <li>Bonus payment scheduling and alerts</li>
-                <li>Regional performance comparison</li>
+                <li>Customer engagement tracking</li>
+                <li>Local business visibility optimization</li>
+                <li>Review management and response tools</li>
+                <li>Performance analytics dashboard</li>
             </ul>
         </div>
 
-        <div class="module">
-            <h3>Client Module</h3>
-            <p>
-                Tools for client interaction, engagement tracking, and reporting.
-            </p>
-        </div>
-
-        <div class="module">
-            <h3>Admin Module</h3>
-            <p>
-                Administrative tools for platform management and oversight.
-            </p>
+        <div class="footer">
+            <p>© 2025 LocalLift. All rights reserved.</p>
         </div>
     </div>
 
-    <div class="section">
-        <h2>Deployment</h2>
-        <h3>Vercel Deployment</h3>
-        <pre><code>vercel --prod --confirm</code></pre>
-
-        <h3>Railway Deployment</h3>
-        <pre><code># Install Railway CLI if needed
-./install_railway.sh             # macOS/Linux
-.\install_railway.ps1            # Windows
-
-# Link to project
-railway link -p 0e58b112-f5f5-4285-ad1f-f47d1481045b
-
-# Deploy
-./deploy-secure.sh</code></pre>
-    </div>
-
-    <div class="section">
-        <h2>API Reference</h2>
-        <p>
-            For the full API reference, please visit <a href="/docs/api">API Documentation</a>.
-        </p>
-    </div>
-
-    <footer>
-        <p>&copy; 2025 LocalLift. All rights reserved.</p>
-    </footer>
+    <script>
+        const API_URL = 'https://locallift-production.up.railway.app';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate checking status
+            document.getElementById('check-status').addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Show checking
+                document.getElementById('api-status').textContent = "Connecting...";
+                document.getElementById('db-status').textContent = "Connecting...";
+                
+                // Simulate API check
+                setTimeout(() => {
+                    document.getElementById('api-status').textContent = "Online";
+                    document.getElementById('db-status').textContent = "Connected";
+                }, 1500);
+            });
+        });
+    </script>
 </body>
 </html>

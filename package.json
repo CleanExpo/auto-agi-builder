@@ -1,5 +1,8 @@
 {
-  "dependencies": {
-    "pdfmake": "^0.2.18"
+  "name": "locallift-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "echo 'No build needed - static deployment'"
   }
 }

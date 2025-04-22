@@ -1,6 +1,10 @@
 {
+  "version": 2,
+  "public": true,
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/admin/guide", "destination": "/index.html" }
-  ]
+  "trailingSlash": false,
+  "outputDirectory": "public",
+  "github": {
+    "silent": true
+  }
 }
