@@ -1,4 +1,5 @@
 @echo off
+setlocal EnableDelayedExpansion
 REM Auto AGI Builder - Vercel Deployment Script
 REM This script finalizes the Vercel deployment for the Auto AGI Builder SaaS application
 
