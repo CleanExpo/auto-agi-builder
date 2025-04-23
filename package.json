@@ -1,8 +1,12 @@
 {
-  "name": "locallift-frontend",
+  "name": "auto-agi-builder",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "echo 'No build needed - static deployment'"
+    "validate-homepage": "node frontend/tests/homepage-validation.js",
+    "start": "echo 'No build needed - static deployment'",
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "test": "jest"
   }
 }

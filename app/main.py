@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 import logging
 import time
 import uuid
+from app.core.error_handling import configure_exception_handlers
 
 # Import API router
 from app.api.v1.api import api_router
@@ -59,6 +60,9 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Content-Disposition"],  # For file downloads
 )
+
+# Configure exception handlers for standardized error responses
+configure_exception_handlers(app)
 
 # Request ID middleware
 @app.middleware("http")

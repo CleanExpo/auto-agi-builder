@@ -1,95 +1,82 @@
+import axios from 'axios';
+
 /**
- * API Client for Auto AGI Builder
- * Handles all API requests with error handling and retry logic
+ * API client for making HTTP requests to the backend
+ * Handles authentication, error handling, and request configuration
  */
 
-import axios from 'axios';
+// Determine the base URL based on environment
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 
+                (process.env.NODE_ENV === 'production' 
+                  ? 'https://api.autoagibuilder.com/api/v1'
+                  : 'http://localhost:8000/api/v1');
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || '/api', // Fallback to relative path for API proxy
-  timeout: 30000, // 30 second timeout
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Send cookies for authentication
+  timeout: 30000, // 30 seconds timeout
 });
 
-// Request interceptor for authentication and logging
+// Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage or cookie
+    // Add auth token from localStorage if available
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
     
-    // Add authorization header if token exists
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Log requests in development
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`API Request: ${config.method.toUpperCase()} ${config.url}`, 
-        config.params || config.data || '');
-    }
-    
     return config;
   },
-  (error) => {
-    // Handle request error
-    console.error('API Request Error:', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling and logging
+// Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => {
-    // Log successful responses in development
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`API Response: ${response.status} ${response.config.url}`, 
-        response.data);
-    }
-    
-    return response;
-  },
-  async (error) => {
-    // Extract response and request info
-    const originalRequest = error.config;
-    const status = error.response ? error.response.status : null;
-    
-    // Log error details
-    console.error(`API Error ${status || 'Network Error'}: ${originalRequest.url}`, 
-      error.response?.data || error.message);
-    
-    // Handle authentication errors (401)
-    if (status === 401 && !originalRequest._retry) {
-      // Avoid infinite retry loops
-      originalRequest._retry = true;
+  (response) => response,
+  (error) => {
+    // Handle specific error codes
+    if (error.response) {
+      const { status } = error.response;
       
-      try {
-        // Attempt to refresh token
+      // Handle authentication errors
+      if (status === 401) {
+        // Clear token if it's invalid
         if (typeof window !== 'undefined') {
-          // Clear invalid token
           localStorage.removeItem('auth_token');
-          
-          // Redirect to login page
-          window.location.href = '/auth/login?session_expired=true';
         }
         
-        return Promise.reject(error);
-      } catch (refreshError) {
-        return Promise.reject(refreshError);
+        // If we need to redirect to login page (but avoid redirect loops)
+        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+        if (currentPath !== '/auth/login' && currentPath !== '/' && typeof window !== 'undefined') {
+          window.location.href = '/auth/login';
+        }
       }
-    }
-    
-    // Handle server errors (500+)
-    if (status >= 500) {
-      // You could implement retry logic here for transient server errors
-    }
-    
-    // Handle CORS issues (0)
-    if (!status) {
-      console.error('Possible CORS or network error', error);
+      
+      // Handle forbidden errors
+      if (status === 403) {
+        console.error('Access forbidden:', error.response.data);
+      }
+      
+      // Handle not found errors
+      if (status === 404) {
+        console.error('Resource not found:', error.response.data);
+      }
+      
+      // Handle server errors
+      if (status >= 500) {
+        console.error('Server error:', error.response.data);
+      }
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('Network error - no response received:', error.request);
+    } else {
+      // Something happened in setting up the request
+      console.error('Request error:', error.message);
     }
     
     return Promise.reject(error);
@@ -97,56 +84,98 @@ api.interceptors.response.use(
 );
 
 /**
- * Enhanced API request with error handling
- * @param {string} method - HTTP method
- * @param {string} url - API endpoint
- * @param {Object|null} data - Request body for POST/PUT/PATCH
- * @param {Object} options - Additional axios options
- * @returns {Promise} - Response data or error
+ * Helper methods for different HTTP methods
+ * These provide a more convenient API with automatic error handling
  */
-export const apiRequest = async (method, url, data = null, options = {}) => {
+
+// Generic request with error handling
+const request = async (method, url, data = null, config = {}) => {
   try {
     const response = await api({
       method,
       url,
-      ...(data && ['post', 'put', 'patch'].includes(method.toLowerCase()) 
-        ? { data } 
-        : {}),
-      ...(data && method.toLowerCase() === 'get' ? { params: data } : {}),
-      ...options,
+      data,
+      ...config,
     });
     
-    return {
-      success: true,
-      data: response.data,
-      status: response.status,
-    };
+    return response.data;
   } catch (error) {
-    // Format error response consistently
-    return {
-      success: false,
-      error: error.response?.data?.detail || error.response?.data?.message || error.message || 'Unknown error',
-      status: error.response?.status || 0,
-    };
+    console.error(`${method} request error:`, error);
+    throw error;
   }
 };
 
-// Convenience methods for common HTTP verbs
-export const get = (url, params, options) => apiRequest('get', url, params, options);
-export const post = (url, data, options) => apiRequest('post', url, data, options);
-export const put = (url, data, options) => apiRequest('put', url, data, options);
-export const patch = (url, data, options) => apiRequest('patch', url, data, options);
-export const del = (url, options) => apiRequest('delete', url, null, options);
-
-// Health check function for API connectivity testing
-export const checkApiHealth = async () => {
-  try {
-    const response = await get('/health-check');
-    return response.success && response.data.status === 'ok';
-  } catch (error) {
-    console.error('API Health Check Failed:', error);
-    return false;
-  }
+// Convenience methods for different HTTP verbs
+const apiClient = {
+  // Base axios instance for advanced use cases
+  instance: api,
+  
+  // GET request
+  get: (url, config = {}) => request('get', url, null, config),
+  
+  // POST request
+  post: (url, data = {}, config = {}) => request('post', url, data, config),
+  
+  // PUT request
+  put: (url, data = {}, config = {}) => request('put', url, data, config),
+  
+  // PATCH request
+  patch: (url, data = {}, config = {}) => request('patch', url, data, config),
+  
+  // DELETE request
+  delete: (url, config = {}) => request('delete', url, null, config),
+  
+  // Upload file(s)
+  upload: (url, formData, onProgress = null, config = {}) => {
+    const uploadConfig = {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      ...config,
+    };
+    
+    // Add progress tracker if provided
+    if (onProgress) {
+      uploadConfig.onUploadProgress = (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        onProgress(percentCompleted);
+      };
+    }
+    
+    return request('post', url, formData, uploadConfig);
+  },
+  
+  // Download file
+  download: async (url, filename, config = {}) => {
+    try {
+      const response = await api({
+        method: 'get',
+        url,
+        responseType: 'blob',
+        ...config,
+      });
+      
+      // Create blob link to download
+      const blob = new Blob([response.data]);
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', filename);
+      
+      // Start download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      return true;
+    } catch (error) {
+      console.error('Download error:', error);
+      throw error;
+    }
+  },
 };
 
-export default api;
+export default apiClient;
