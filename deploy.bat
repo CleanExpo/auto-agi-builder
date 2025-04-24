@@ -68,11 +68,66 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo [4/5] Pushing changes to GitHub...
+echo If you see an error about diverged branches, you may need to resolve conflicts.
+
+REM Check if branches have diverged and offer options
 git push
 if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Failed to push changes to GitHub.
-    echo Check your internet connection and GitHub credentials.
-    exit /b 1
+    echo.
+    echo [WARNING] Failed to push changes to GitHub.
+    echo Your local branch and the remote branch have diverged.
+    echo.
+    echo Options to resolve this issue:
+    echo 1. Pull and merge remote changes: git pull
+    echo 2. Force push your changes (overwrites remote): git push -f
+    echo 3. Pull with rebase: git pull --rebase
+    echo.
+    set /p RESOLVE_OPTION=Choose an option (1, 2, 3, or any other key to cancel): 
+    
+    if "!RESOLVE_OPTION!"=="1" (
+        echo Pulling and merging remote changes...
+        git pull
+        if %ERRORLEVEL% neq 0 (
+            echo [ERROR] Failed to pull changes from GitHub.
+            exit /b 1
+        )
+        echo Pushing merged changes...
+        git push
+        if %ERRORLEVEL% neq 0 (
+            echo [ERROR] Failed to push changes to GitHub.
+            exit /b 1
+        )
+    ) else if "!RESOLVE_OPTION!"=="2" (
+        echo WARNING: Force pushing will overwrite remote changes.
+        set /p CONFIRM_FORCE=Are you sure you want to force push? (Y/N): 
+        if /i "!CONFIRM_FORCE!"=="Y" (
+            echo Force pushing changes...
+            git push -f
+            if %ERRORLEVEL% neq 0 (
+                echo [ERROR] Failed to force push changes to GitHub.
+                exit /b 1
+            )
+        ) else (
+            echo Force push cancelled.
+            exit /b 1
+        )
+    ) else if "!RESOLVE_OPTION!"=="3" (
+        echo Pulling with rebase...
+        git pull --rebase
+        if %ERRORLEVEL% neq 0 (
+            echo [ERROR] Failed to pull with rebase from GitHub.
+            exit /b 1
+        )
+        echo Pushing rebased changes...
+        git push
+        if %ERRORLEVEL% neq 0 (
+            echo [ERROR] Failed to push changes to GitHub.
+            exit /b 1
+        )
+    ) else (
+        echo Deployment cancelled.
+        exit /b 1
+    )
 )
 
 echo.
