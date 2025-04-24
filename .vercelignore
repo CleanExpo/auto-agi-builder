@@ -1,0 +1,17 @@
+# Ignore Python backend
+app/
+tests/
+quadrants/
+launch_preparation/
+
+# Ignore deployment files not needed for frontend
+deployment/
+scripts/
+docs/
+
+# Ignore Python files
+*.py
+requirements.txt
+
+# Keep only frontend
+!frontend/
