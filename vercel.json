@@ -6,8 +6,8 @@
       "use": "@vercel/next"
     }
   ],
-  "routes": [
-    { "src": "/(.*)", "dest": "frontend/$1" }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "frontend/$1" }
   ],
   "env": {
     "NODE_ENV": "production",
@@ -15,33 +15,6 @@
     "NEXT_PUBLIC_SITE_URL": "https://auto-agi-builder.vercel.app",
     "NEXT_PUBLIC_APP_NAME": "Auto AGI Builder"
   },
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=()"
-        }
-      ]
-    }
-  ],
   "github": {
     "silent": true,
     "autoJobCancelation": true
