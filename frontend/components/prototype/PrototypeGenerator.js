@@ -749,9 +749,9 @@ const Dashboard = ({ userId }${isTypescript ? ': DashboardProps' : ''}) => {
   const [error, setError] = useState${isTypescript ? '<string | null>' : ''}(null);
   
   useEffect(() => {
-    const fetchStats = async () => {
+    async function fetchStats() {
       try {
-        // In a real implementation, this would be an API call
+        // In a real implementation this would be an API call
         // const response = await fetch(`/api/users/${userId}/dashboard-stats`);
         // const data = await response.json();
         
