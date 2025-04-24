@@ -20,14 +20,24 @@ if not exist next.config.js (
   exit /b 1
 )
 
-echo "4. Creating optimized production build..."
-call npm run build
+echo "4. Installing dependencies and creating optimized production build..."
+echo "Installing dependencies..."
+call npm install
+
+if %ERRORLEVEL% NEQ 0 (
+  echo "Dependency installation failed. Please check your npm configuration."
+  exit /b 1
+)
+
+echo "Creating optimized production build..."
+call npx next build
 
 if %ERRORLEVEL% NEQ 0 (
   echo "Build failed. Checking for common issues..."
   echo "- Ensure all environment variables are properly set"
   echo "- Check for syntax errors in components"
   echo "- Verify dependencies are properly installed"
+  echo "- Confirm Next.js is installed as a dependency"
   echo "Please check the error messages above for more details."
   exit /b 1
 ) else (
