@@ -7,7 +7,6 @@ const nextConfig = {
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
     NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
     NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'Auto AGI Builder',
-    NODE_ENV: process.env.NODE_ENV || 'development',
     NEXT_PUBLIC_ANALYTICS_ID: process.env.NEXT_PUBLIC_ANALYTICS_ID || '',
     // Fixed environment variable naming to be consistent with NEXT_PUBLIC_ prefix
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
@@ -62,10 +61,6 @@ const nextConfig = {
 
     return config;
   },
-  experimental: {
-    // Enable App Router (for future use)
-    appDir: false
-  }
 };
 
 module.exports = nextConfig;
