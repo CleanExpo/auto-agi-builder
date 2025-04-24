@@ -14,15 +14,9 @@
       }
     }
   ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "app/main.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "frontend/$1"
-    }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "app/main.py" },
+    { "source": "/(.*)", "destination": "frontend/$1" }
   ],
   "env": {
     "API_HOST": "api.auto-agi-builder.vercel.app",
