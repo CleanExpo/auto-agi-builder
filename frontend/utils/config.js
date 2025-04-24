@@ -25,6 +25,8 @@ export const publicConfig = {
   
   // Analytics
   analyticsId: process.env.NEXT_PUBLIC_ANALYTICS_ID || '',
+  googleAnalyticsId: process.env.NEXT_PUBLIC_GA_ID || '',
+  googleTagManagerId: process.env.NEXT_PUBLIC_GTM_ID || '',
   
   // Firebase configuration
   firebase: {
