@@ -1,110 +1,108 @@
 # Auto AGI Builder - Vercel Deployment Guide
 
-This guide provides step-by-step instructions for deploying the Auto AGI Builder application to Vercel.
+This document provides comprehensive instructions on deploying the Auto AGI Builder to Vercel, addressing common issues encountered during the deployment process.
 
-## Prerequisites
+## Deployment Scripts
 
-1. Vercel account
-2. GitHub repository with the Auto AGI Builder codebase
-3. Node.js and npm installed
+We've created several deployment scripts to address specific issues:
 
-## Setup Vercel CLI
+| Script | Purpose |
+|--------|---------|
+| `frontend-only-deploy.bat` | **RECOMMENDED** - Deploys only the frontend to stay under Vercel's 10MB size limit |
+| `fix-vercel-link.bat` | Fixes project linking issues by removing the .vercel directory |
+| `fix-vercel-directory.bat` | Updates vercel.json to point to the correct root directory |
+| `fix-vercel-regex.bat` | Fixes JSON escaping in vercel.json |
+| `final-deploy-fix.bat` | Combines all fixes but may still hit size limits |
 
-```bash
-# Install Vercel CLI globally
-npm install -g vercel
+## Common Deployment Issues
 
-# Login to Vercel
-vercel login
+### 1. JSON Parsing Error
+
+**Error:** Unable to parse vercel.json due to improper escaping of backslashes.
+
+**Solution:** Use `fix-vercel-regex.bat` which fixes the regex pattern in vercel.json.
+```json
+// Incorrect:
+"source": "/(.*)\.(js|css|webp|jpg|jpeg|png|svg|ico)$"
+
+// Fixed:
+"source": "/(.*)\\.(js|css|webp|jpg|jpeg|png|svg|ico)$"
 ```
 
-## Configuration
+### 2. Project Linking Error
 
-Ensure all environment variables are set up correctly:
+**Error:** "Could not retrieve Project Settings. To link your Project, remove the .vercel directory and deploy again."
 
-1. Copy `.env.example` to `.env` and fill in all required values
-2. Set up required environment variables in Vercel project settings:
-   - `DATABASE_URL`: PostgreSQL connection string
-   - `JWT_SECRET`: Secret for JWT token generation
-   - `SENDGRID_API_KEY`: For email services
-   - `API_BASE_URL`: Backend API URL for production
+**Solution:** Use `fix-vercel-link.bat` to remove the .vercel directory and re-link the project.
 
-## Deployment Process
+### 3. Next.js Detection Error
 
-### Link Your Project
+**Error:** "No Next.js version detected. Make sure your package.json has 'next' in either 'dependencies' or 'devDependencies'."
 
-```bash
-# In your project root directory
-vercel link
-```
+**Solution:** Use `fix-vercel-directory.bat` to:
+- Update the package.json at the root level to include Next.js
+- Configure vercel.json to point to the correct directory
 
-### Deploy to Vercel
+### 4. Request Body Too Large
 
-```bash
-# Production deployment
-vercel --prod
-```
+**Error:** "Request body too large. Limit: 10mb"
 
-## Monitoring and Verification
+**Solution:** Use `frontend-only-deploy.bat` which:
+- Creates a strict .vercelignore file to include only frontend files
+- Removes unnecessary large files like node_modules and .next
+- Uses a minimal vercel.json configuration
+- Simplifies the root package.json
 
-1. Check deployment status and logs in the Vercel dashboard
-2. Verify all API endpoints are functioning:
-   - Authentication flows
-   - Document processing
-   - Requirements management
-   - Prototype generation
-   - ROI calculations
-   - Roadmap visualization
+## Recommended Deployment Process
 
-3. Test multi-device previews and responsiveness
+1. Run the `frontend-only-deploy.bat` script:
+   ```
+   ./frontend-only-deploy.bat
+   ```
 
-## Rollback Procedure
+2. This script will:
+   - Remove any previous .vercel directory to ensure a clean start
+   - Create a strict .vercelignore file that only includes frontend files
+   - Update vercel.json with minimal configuration
+   - Remove large directories like node_modules (they'll be reinstalled during build)
+   - Create a simplified package.json with Next.js dependency
+   - Link to your Vercel project
+   - Deploy to production
 
-If issues are detected in production:
-
-```bash
-# List deployments
-vercel ls
-
-# Rollback to a previous deployment
-vercel alias set [deployment-id] [your-domain.com]
-```
-
-## Automating Deployments
-
-The project uses GitHub Actions for CI/CD. Check `.github/workflows/ci_cd.yml` for the automated deployment configuration.
-
-## Post-Deployment Tasks
-
-1. Set up Vercel monitoring and alerts
-2. Configure custom domains and SSL certificates
-3. Set up performance monitoring with Vercel Analytics
-4. Enable automatic preview deployments for feature branches
+3. After deployment, your Auto AGI Builder frontend should be accessible at the Vercel URL.
 
 ## Troubleshooting
 
-See `docs/vercel_troubleshooting.md` for common issues and solutions.
+If you encounter issues:
 
-## Security Considerations
+1. **Check deployment logs in the Vercel dashboard** for specific error messages.
 
-1. Ensure all API keys and secrets are stored in Vercel environment variables, not in code
-2. Use Vercel's Edge Security features for additional protection
-3. Configure proper CORS settings in `app/main.py`
-4. Ensure JWT authentication is properly implemented across all protected routes
+2. **For API connections:** Make sure your frontend components are configured to connect to the right backend URL.
 
-## Performance Optimizations
+3. **For persistent deployment issues:** Try deploying just the frontend portion first (as recommended) and then add backend services separately.
 
-1. The `next.config.js` contains optimizations for:
-   - Image optimization
-   - Static file caching
-   - Incremental Static Regeneration settings
-   - API route performance tuning
+4. **For size limit issues:** The `frontend-only-deploy.bat` script should resolve these by excluding all unnecessary files.
 
-2. Ensure CDN caching is properly configured for static assets
+## Key Settings in vercel.json
 
-## Maintenance
+The key settings for successful deployment are:
 
-Use the included scripts for maintenance tasks:
-- `scripts/redeploy.sh` / `scripts/redeploy.bat` - Redeployment with validation
-- `scripts/deployment_checklist.js` - Pre-deployment verification
-- `scripts/run-validation.js` - Validate codebase integrity
+```json
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "frontend/out",
+  "framework": "nextjs"
+}
+```
+
+## Deployment Size Limitations
+
+Vercel has a 10MB upload size limit for deployments. The project directory contains many files that aren't needed for the frontend deployment, including:
+
+- Python backend files
+- Documentation
+- Scripts
+- Test files
+
+The `frontend-only-deploy.bat` script creates a strict .vercelignore file that includes only the essential frontend files needed for deployment.

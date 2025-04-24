@@ -1,0 +1,10 @@
+{
+  "env": {
+    "SENTRY_DSN": ""
+  },
+  "build": {
+    "env": {
+      "SENTRY_DSN": ""
+    }
+  }
+}

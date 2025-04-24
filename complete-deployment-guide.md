@@ -1,225 +1,123 @@
 # Auto AGI Builder - Complete Deployment Guide
 
-This guide will walk you through the complete process of deploying your Auto AGI Builder application to Vercel with proper custom domain configuration.
+This guide provides comprehensive instructions for deploying the Auto AGI Builder application to Vercel.
 
-## Overview of Components
+## Deployment Issues Overview
 
-1. **Domain Configuration Scripts**
-   - `auto-domain-config.js` - Automatically configures domains in Vercel
-   - `verify-domain-status.js` - Checks domain status and DNS configuration
-   - `dns-record-configurator.js` - Interactive DNS record configuration tool
-   - Convenience wrappers: `run-domain-config.bat/.sh`, `verify-domain.bat/.sh`, and `run-dns-config.bat/.sh`
+We've addressed several issues with the deployment process:
 
-2. **Full Deployment System**
-   - `deploy-to-vercel.js` - Comprehensive deployment system that:
-     - Consolidates domains to the correct project
-     - Deploys the application to Vercel
-     - Configures environment variables
-     - Verifies domain settings
-   - Convenience launchers: `deploy-production.bat/.sh`
+1. **Corrupted Configuration Files**: The package.json file contained merge conflict markers
+2. **Python Dependencies**: pip installation is failing in the Vercel build process
+3. **Vercel Configuration**: Missing proper project and organization linking
+4. **Environment Variables**: Issues with Sentry DSN and other environment variables
 
-3. **Documentation**
-   - `README-domain-configurator.md` - Documentation for domain configuration
-   - `domain-configuration-plan.md` - Step-by-step plan to resolve domain issues
-   - `domain-configuration-summary.md` - Overview of the domain toolkit
-   - `complete-deployment-guide.md` (this file) - Comprehensive guide for the entire deployment
+## Deployment Scripts
 
-## Quick Start Guide
+We've created multiple scripts to fix these issues:
 
-### Option 1: Full Production Deployment (Recommended)
+### 1. fix-package-json.bat
 
-For a complete deployment including domain consolidation:
+This script creates a clean package.json file to replace the corrupted one:
 
-**Windows:**
-```bash
-# Double-click deploy-production.bat
+```batch
+.\fix-package-json.bat
 ```
 
-**Mac/Linux:**
-```bash
-# Make the script executable
-chmod +x deploy-production.sh
+### 2. vercel-requirements-fix.bat
 
-# Run the deployment script
-./deploy-production.sh
+This script creates a proper requirements.txt with pinned versions and sets up the Vercel configuration:
+
+```batch
+.\vercel-requirements-fix.bat
 ```
 
-### Option 2: Step-by-Step Approach
+### 3. final-run-deploy.bat
 
-#### 1. Domain Configuration
+This script handles the final deployment with proper settings:
 
-First, configure your domains:
-
-**Windows:**
-```bash
-# Double-click run-domain-config.bat
+```batch
+.\final-run-deploy.bat
 ```
 
-**Mac/Linux:**
-```bash
-# Make the script executable
-chmod +x run-domain-config.sh
+## Step-by-Step Deployment Instructions
 
-# Run the configuration script
-./run-domain-config.sh
-```
+For the best chance of success, follow these steps in order:
 
-#### 2. DNS Record Configuration
-
-Configure DNS records for your domains:
-
-**Windows:**
-```bash
-# Double-click run-dns-config.bat
-```
-
-**Mac/Linux:**
-```bash
-# Make the script executable
-chmod +x run-dns-config.sh
-
-# Run the DNS configuration tool
-./run-dns-config.sh
-```
-
-#### 3. Domain Verification
-
-Check the status of your domains:
-
-**Windows:**
-```bash
-# Double-click verify-domain.bat
-```
-
-**Mac/Linux:**
-```bash
-# Make the script executable
-chmod +x verify-domain.sh
-
-# Run the verification script
-./verify-domain.sh
-```
-
-#### 3. Manual Deployment (if needed)
-
-If you need to deploy manually:
-
-1. Go to the Vercel Dashboard: https://vercel.com/dashboard
-2. Connect your GitHub repository
-3. Configure build settings for Next.js
-4. Set environment variables
-5. Deploy
-
-## Understanding the Process
-
-### Domain Consolidation
-
-When the automated system runs, it will:
-
-1. Check if your domains (`autoagibuilder.app` and `www.autoagibuilder.app`) are assigned to other projects
-2. Remove them from any incorrect projects
-3. Add them to your Auto AGI Builder project
-4. Configure proper redirection (www to non-www)
-
-### Deployment Process
-
-The deployment system will:
-
-1. Ask you how to deploy (from GitHub or local files)
-2. Handle the deployment process through Vercel
-3. Set up environment variables
-4. Verify deployment status
-
-### DNS Configuration
-
-For proper domain setup, you'll need to configure DNS records:
-
-1. Set nameservers to Vercel's nameservers:
-   - ns1.vercel-dns.com
-   - ns2.vercel-dns.com
-
-OR
-
-2. Add these DNS records to your current provider:
+1. **Fix Package.json**
    ```
-   A Record:
-   Name: @
-   Value: 76.76.21.21
-   TTL: 3600 (or Auto)
-   
-   CNAME Record:
-   Name: www
-   Value: cname.vercel-dns.com
-   TTL: 3600 (or Auto)
-   
-   TXT Record: (for verification)
-   Name: _vercel
-   Value: [provided by Vercel]
-   TTL: 3600 (or Auto)
+   .\fix-package-json.bat
+   ```
+   This creates a clean package.json with proper dependencies.
+
+2. **Fix Python Requirements**
+   ```
+   .\vercel-requirements-fix.bat
+   ```
+   This creates a proper requirements.txt and Vercel configuration.
+
+3. **Run Final Deployment**
+   ```
+   .\final-run-deploy.bat
+   ```
+   This performs the actual deployment to Vercel.
+
+## Manual Deployment Alternative
+
+If the scripts don't work, you can manually perform these steps:
+
+1. Navigate to the project directory:
+   ```
+   cd "C:\Users\PhillMcGurk\OneDrive - Disaster Recovery\1111\Auto AGI Builder"
    ```
 
-## Environment Variables
+2. Create proper .vercel configuration:
+   ```
+   mkdir .vercel
+   echo { > .vercel\project.json
+   echo   "projectId": "prj_zJDsetW3XUQ8Pgw0EhEgeZVUk0Ss", >> .vercel\project.json
+   echo   "orgId": "team_hIVuEbN4ena7UPqg1gt1jb6s", >> .vercel\project.json
+   echo   "settings": { >> .vercel\project.json
+   echo     "framework": null, >> .vercel\project.json
+   echo     "pythonVersion": "3.9" >> .vercel\project.json
+   echo   } >> .vercel\project.json
+   echo } >> .vercel\project.json
+   ```
 
-The following environment variables can be configured in your `.env` file:
+3. Create a working requirements.txt file:
+   ```
+   echo fastapi==0.95.0 > requirements.txt
+   echo uvicorn==0.21.1 >> requirements.txt
+   echo pydantic==1.10.7 >> requirements.txt
+   echo python-dotenv==1.0.0 >> requirements.txt
+   echo requests==2.28.2 >> requirements.txt
+   ```
 
-```
-# Vercel API Configuration
-VERCEL_TOKEN=ETMf43Je9tpo7EOm9XBNPvQx (pre-configured)
-VERCEL_PROJECT_ID=prj_zJDsetW3XUQ8Pgw0EhEgeZVUk0Ss (pre-configured)
-VERCEL_TEAM_ID=team_hIVuEbN4ena7UPqg1gt1jb6s (pre-configured)
-
-# Domain Configuration
-DOMAIN=autoagibuilder.app (pre-configured)
-WWW_DOMAIN=www.autoagibuilder.app (pre-configured)
-
-# GitHub Repository (if deploying from GitHub)
-GITHUB_REPO=your-github-username/auto-agi-builder
-
-# Local Project Path (if deploying from local files)
-LOCAL_PROJECT_PATH=../OneDrive - Disaster Recovery/1111/Auto AGI Builder
-
-# Deployment Mode
-PRODUCTION=true (set to true for production deployment)
-```
+4. Deploy with Vercel:
+   ```
+   vercel --prod
+   ```
 
 ## Troubleshooting
 
-### Domain Issues
+If you encounter deployment issues:
 
-If you encounter domain issues:
+1. **Python Dependency Issues**: Try setting SKIP_INSTALL_DEPS=true in your environment variables
 
-1. Run `run-dns-config.bat` or `./run-dns-config.sh` to diagnose and fix DNS issues
-2. Run `verify-domain.bat` or `./verify-domain.sh` to check domain status
-3. Review Vercel dashboard for domain configuration
-4. Ensure DNS records are correctly set up
-5. Allow 24-48 hours for DNS propagation
+2. **JSON Parsing Errors**: Check for merge conflict markers in your JSON files (<<<<<<< HEAD, etc.)
 
-### Deployment Issues
+3. **Vercel Project Association**: Ensure your .vercel/project.json file has the correct projectId and orgId
 
-If deployment fails:
+4. **Missing pip packages**: Look at Vercel logs for specific package errors and add them to requirements.txt
 
-1. Check Vercel logs for error messages
-2. Ensure your GitHub repository is correctly connected
-3. Verify environment variables are set correctly
-4. Try deploying manually from the Vercel dashboard
+## Checking Deployment Status
 
-## Next Steps After Deployment
+To check if your deployment was successful:
 
-Once your site is deployed:
+```
+vercel logs auto-agi-builder-4j8mlqdcr-admin-cleanexpo247s-projects.vercel.app
+```
 
-1. Test all functionality on the live site
-2. Set up monitoring (Vercel Analytics)
-3. Configure any additional environment variables
-4. Set up CI/CD for future deployments
+## Production URL
 
-## Need Help?
-
-If you need additional assistance:
-
-1. Review the Vercel documentation: https://vercel.com/docs
-2. Check the domain configuration plan in `domain-configuration-plan.md`
-3. Run the verification script to identify specific issues
-
----
-
-This toolkit provides a complete solution for deploying your Auto AGI Builder application to Vercel with custom domain configuration. Follow the steps in this guide for a smooth deployment process.
+When successfully deployed, your application will be available at:
+https://auto-agi-builder-4j8mlqdcr-admin-cleanexpo247s-projects.vercel.app
