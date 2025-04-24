@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auto AGI Builder Deployment System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            color: #333;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fb;
+        }
+        h1, h2, h3 {
+            color: #2a3f5f;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+            border-bottom: 2px solid #5c7cfa;
+            padding-bottom: 10px;
+        }
+        h2 {
+            font-size: 1.8em;
+            margin-top: 40px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        h3 {
+            font-size: 1.3em;
+            margin-top: 30px;
+        }
+        pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+            background-color: #f0f0f0;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .tool-card {
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+        }
+        .tool-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .tool-icon {
+            background-color: #5c7cfa;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            font-size: 20px;
+        }
+        .tool-title {
+            font-size: 1.5em;
+            margin: 0;
+        }
+        .tool-description {
+            margin-bottom: 15px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #5c7cfa;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .button:hover {
+            background-color: #4c6ef5;
+        }
+        .workflow {
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #e8f4fc;
+            border-radius: 6px;
+            border-left: 5px solid #4c6ef5;
+        }
+        .workflow-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2a3f5f;
+        }
+        .step {
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+        }
+        .step::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 8px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #5c7cfa;
+        }
+        .note {
+            background-color: #fff8db;
+            border-left: 4px solid #ffd43b;
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .screenshot {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 15px 0;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        .demo-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            .demo-links {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Auto AGI Builder Deployment System</h1>
+    
+    <p>This guide demonstrates how to use the Auto AGI Builder deployment system to deploy your application to Vercel with proper domain configuration. The system consists of three main components:</p>
+    
+    <div class="workflow">
+        <div class="workflow-title">Complete Deployment Process:</div>
+        <div class="step">Run <strong>deploy-production.bat</strong> to deploy your application and consolidate domains</div>
+        <div class="step">Run <strong>run-dns-config.bat</strong> to configure DNS records for your custom domain</div>
+        <div class="step">Run <strong>verify-domain.bat</strong> to verify domain configuration after DNS propagation</div>
+    </div>
+
+    <div class="tool-card">
+        <div class="tool-header">
+            <div class="tool-icon">1</div>
+            <h3 class="tool-title">Full Deployment</h3>
+        </div>
+        <div class="tool-description">
+            <p>The <code>deploy-production.bat</code> script handles the complete deployment process, including domain consolidation, application deployment, and environment variable configuration.</p>
+        </div>
+        <div class="note">
+            <strong>When to use:</strong> Run this script first to deploy your application and set up domains in Vercel.
+        </div>
+        <h4>Features:</h4>
+        <ul>
+            <li>Consolidates domains assigned to incorrect projects</li>
+            <li>Deploys the application to Vercel (from GitHub or local files)</li>
+            <li>Configures environment variables</li>
+            <li>Sets up domain redirects</li>
+            <li>Verifies deployment status</li>
+        </ul>
+        <h4>How to Run:</h4>
+        <pre>Double-click deploy-production.bat</pre>
+        <div class="demo-links">
+            <a href="demo-deploy-production.html" class="button" target="_blank">View Deployment Demo</a>
+        </div>
+    </div>
+
+    <div class="tool-card">
+        <div class="tool-header">
+            <div class="tool-icon">2</div>
+            <h3 class="tool-title">DNS Configuration</h3>
+        </div>
+        <div class="tool-description">
+            <p>The <code>run-dns-config.bat</code> script helps you configure the correct DNS records for your custom domain, providing tailored instructions for your specific DNS provider.</p>
+        </div>
+        <div class="note">
+            <strong>When to use:</strong> After deploying, run this script to get detailed DNS configuration instructions for your domain.
+        </div>
+        <h4>Features:</h4>
+        <ul>
+            <li>Checks current DNS records</li>
+            <li>Detects your DNS provider and generates tailored instructions</li>
+            <li>Creates detailed configuration files with exact DNS records</li>
+            <li>Supports popular DNS providers (Vercel DNS, GoDaddy, Namecheap, Cloudflare, AWS Route 53)</li>
+        </ul>
+        <h4>How to Run:</h4>
+        <pre>Double-click run-dns-config.bat</pre>
+        <div class="demo-links">
+            <a href="demo-dns-config.html" class="button" target="_blank">View DNS Configuration Demo</a>
+        </div>
+    </div>
+
+    <div class="tool-card">
+        <div class="tool-header">
+            <div class="tool-icon">3</div>
+            <h3 class="tool-title">Domain Verification</h3>
+        </div>
+        <div class="tool-description">
+            <p>The <code>verify-domain.bat</code> script verifies the status of your domains and DNS records to ensure everything is properly configured.</p>
+        </div>
+        <div class="note">
+            <strong>When to use:</strong> After DNS propagation (24-48 hours), run this script to verify your domain configuration.
+        </div>
+        <h4>Features:</h4>
+        <ul>
+            <li>Checks verification status with Vercel</li>
+            <li>Verifies DNS records point to Vercel servers</li>
+            <li>Confirms nameserver configuration</li>
+            <li>Tests domain accessibility</li>
+            <li>Checks SSL certificate validity</li>
+        </ul>
+        <h4>How to Run:</h4>
+        <pre>Double-click verify-domain.bat</pre>
+        <div class="demo-links">
+            <a href="demo-verify-domain.html" class="button" target="_blank">View Domain Verification Demo</a>
+        </div>
+    </div>
+
+    <h2>Common Issues & Troubleshooting</h2>
+    
+    <h3>Domain Issues</h3>
+    <ul>
+        <li><strong>Domain not verified:</strong> Make sure you've added the required TXT records and wait for DNS propagation (24-48 hours)</li>
+        <li><strong>DNS records not updated:</strong> Check your DNS provider's dashboard to ensure records were saved correctly</li>
+        <li><strong>Domain assigned to wrong project:</strong> Use <code>deploy-production.bat</code> to consolidate domains to the correct project</li>
+    </ul>
+    
+    <h3>Deployment Issues</h3>
+    <ul>
+        <li><strong>Build failures:</strong> Check Vercel logs for error messages</li>
+        <li><strong>Missing environment variables:</strong> Make sure all required environment variables are set</li>
+        <li><strong>API errors:</strong> Ensure your Vercel API token is valid</li>
+    </ul>
+    
+    <div class="note">
+        <strong>Need more help?</strong> Consult the comprehensive documentation in <code>complete-deployment-guide.md</code> for detailed instructions and troubleshooting tips.
+    </div>
+</body>
+</html>

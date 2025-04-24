@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DNS Configuration Demonstration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Consolas, monospace;
+            background-color: #0c0c0c;
+            color: #cccccc;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        .terminal {
+            background-color: #0c0c0c;
+            border: 1px solid #333;
+            padding: 20px;
+            border-radius: 5px;
+            max-width: 800px;
+            margin: 0 auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            overflow: auto;
+        }
+        .command {
+            color: #f9f9f9;
+            font-weight: bold;
+        }
+        .success {
+            color: #4CAF50;
+        }
+        .warning {
+            color: #FFC107;
+        }
+        .error {
+            color: #F44336;
+        }
+        .info {
+            color: #2196F3;
+        }
+        .prompt {
+            color: #FF9800;
+        }
+        .header {
+            color: #00bcd4;
+            font-weight: bold;
+            padding: 10px 0;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 1.2em;
+        }
+        h1 {
+            text-align: center;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Running run-dns-config.bat (Windows)</h1>
+    
+    <div class="terminal">
+        <div class="header">===================================</div>
+        <div class="header">Auto AGI Builder DNS Configurator</div>
+        <div class="header">===================================</div>
+        <br>
+        <div class="info">Installing dependencies...</div>
+        <div class="command">npm install axios dotenv</div>
+        <div class="info">added 3 packages, and audited 5 packages in 2s</div>
+        <div class="success">found 0 vulnerabilities</div>
+        <br>
+        <div class="info">Running DNS configuration tool...</div>
+        <br>
+        <div class="header">DNS Configuration for Auto AGI Builder</div>
+        <br>
+        <div class="info">This script will help you configure the correct DNS records for your custom domain.</div>
+        <br>
+        <div class="info">Checking domain configuration in Vercel...</div>
+        <div class="warning">⚠️ Domain autoagibuilder.app is not verified.</div>
+        <div class="warning">⚠️ Domain www.autoagibuilder.app is not verified.</div>
+        <br>
+        <div class="info">Vercel DNS Configuration:</div>
+        <br>
+        <div class="info">Recommended Nameservers:</div>
+        <div class="info">- ns1.vercel-dns.com</div>
+        <div class="info">- ns2.vercel-dns.com</div>
+        <br>
+        <div class="info">Configuration method: Not configured yet</div>
+        <br>
+        <div class="info">Checking current DNS records for autoagibuilder.app...</div>
+        <div class="warning">❌ No A records found. DNS records need to be configured.</div>
+        <div class="warning">❌ No NS records found.</div>
+        <br>
+        <div class="prompt">
+What DNS provider are you using? Select an option:
+1. Vercel (recommended)
+2. GoDaddy
+3. Namecheap
+4. Cloudflare
+5. Route 53 (AWS)
+6. Other
+Enter option (1-6): 2
+        </div>
+        <br>
+        <div class="info">Selected: GoDaddy</div>
+        <br>
+        <div class="warning">⚠️ Domain autoagibuilder.app is not verified.</div>
+        <div class="info">Verification type: TXT</div>
+        <div class="info">TXT record name: _vercel.autoagibuilder.app</div>
+        <div class="info">TXT record value: vc-domain-verify=autoagibuilder.app,12345abcdef</div>
+        <br>
+        <div class="success">✅ DNS instructions saved to: godaddy-dns-configuration.md</div>
+        <br>
+        <div class="header">DNS Configuration Summary</div>
+        <br>
+        <div class="info">Apex Domain (autoagibuilder.app): ❌ Not Verified</div>
+        <div class="info">WWW Domain (www.autoagibuilder.app): ❌ Not Verified</div>
+        <br>
+        <div class="info">DNS Provider: godaddy</div>
+        <div class="info">DNS Configuration Instructions: godaddy-dns-configuration.md</div>
+        <br>
+        <div class="info">Next Steps:</div>
+        <div class="info">1. Follow the DNS configuration instructions in the generated file</div>
+        <div class="info">2. Wait for DNS propagation (24-48 hours)</div>
+        <div class="info">3. Run this script again to verify DNS configuration</div>
+        <br>
+        <div class="info">After DNS propagation is complete, your site will be accessible at:</div>
+        <div class="info">https://autoagibuilder.app</div>
+        <br>
+        <div class="prompt">Press any key to exit...</div>
+    </div>
+</body>
+</html>
