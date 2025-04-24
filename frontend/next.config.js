@@ -2,6 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  trailingSlash: true,
+  distDir: '.next',
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
@@ -24,6 +26,15 @@ const nextConfig = {
         permanent: true
       }
     ];
+  },
+  
+  // Handle 404 errors with a custom page
+  async exportPathMap() {
+    return {
+      '/': { page: '/' },
+      '/404': { page: '/404' },
+      '/_error': { page: '/_error' }
+    };
   },
   async headers() {
     return [
