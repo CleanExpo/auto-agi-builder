@@ -20,8 +20,8 @@ const nextConfig = {
       {
         source: '/home',
         destination: '/',
-        permanent: true,
-      },
+        permanent: true
+      }
     ];
   },
   async headers() {
@@ -31,31 +31,31 @@ const nextConfig = {
         headers: [
           {
             key: 'X-Content-Type-Options',
-            value: 'nosniff',
+            value: 'nosniff'
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'DENY'
           },
           {
             key: 'X-XSS-Protection',
-            value: '1; mode=block',
+            value: '1; mode=block'
           },
           {
             key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-        ],
-      },
+            value: 'strict-origin-when-cross-origin'
+          }
+        ]
+      }
     ];
   },
   images: {
-    domains: ['firebasestorage.googleapis.com'],
+    domains: ['firebasestorage.googleapis.com']
   },
   webpack(config) {
     config.module.rules.push({
       test: /\.svg$/,
-      use: ['@svgr/webpack'],
+      use: ['@svgr/webpack']
     });
 
     return config;
@@ -64,8 +64,8 @@ const nextConfig = {
     // Enable SWC for faster builds
     swcMinify: true,
     // Enable App Router (for future use)
-    appDir: false,
-  },
+    appDir: false
+  }
 };
 
 module.exports = nextConfig;
