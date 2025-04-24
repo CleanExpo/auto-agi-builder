@@ -5,5 +5,9 @@
   "trailingSlash": false, 
   "github": { 
     "silent": true 
-  } 
-} 
+  },
+  "routes": [
+    { "src": "/(.*)", "dest": "/index.html" },
+    { "handle": "filesystem" }
+  ]
+}
