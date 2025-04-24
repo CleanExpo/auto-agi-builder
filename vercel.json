@@ -1,13 +1,10 @@
 { 
   "version": 2, 
-  "public": true, 
-  "cleanUrls": true, 
-  "trailingSlash": false, 
+  "public": true,
   "github": { 
     "silent": true 
   },
-  "routes": [
-    { "src": "/(.*)", "dest": "/index.html" },
-    { "handle": "filesystem" }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
