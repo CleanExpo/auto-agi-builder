@@ -1,9 +1,8 @@
 { 
-  "name": "auto-agi-builder-static", 
+  "name": "auto-agi-builder-public-demo", 
   "version": "1.0.0", 
-  "private": true, 
-  "engines": { 
-    "node": "18.18.0", 
-    "npm": "10.9.0" 
+  "description": "Public deployment demo for Auto AGI Builder", 
+  "scripts": { 
+    "start": "serve public" 
   } 
 } 
