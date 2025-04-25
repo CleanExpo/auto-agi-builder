@@ -1,7 +1,4 @@
 node_modules 
-.git 
-.vercel 
 .env 
-!index.html 
-!public/** 
-!vercel.json 
+.env.* 
+.git 
