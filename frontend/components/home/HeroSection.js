@@ -26,12 +26,12 @@ const HeroSection = ({ onGetStarted }) => {
       <div className="container mx-auto px-4 relative z-10">
         <div className="flex flex-col md:flex-row items-center justify-between">
           <div className="max-w-2xl md:w-1/2 md:pr-8 text-center md:text-left mb-12 md:mb-0">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              Build Your Ideas Faster with AI-Powered Development
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight animate-fade-in-up">
+              Transform Ideas into Products with AI-Powered Development
             </h1>
-            <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-xl">
-              Auto AGI Builder transforms your requirements into working prototypes, 
-              saving you weeks of development time and accelerating your product roadmap.
+            <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-xl animate-fade-in-up animation-delay-200">
+              Auto AGI Builder converts your requirements into functional prototypes in minutes, 
+              accelerating your development cycle by up to 10x while cutting costs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
               <button 

@@ -8,6 +8,7 @@ import AnalyticsConsent from '../components/common/AnalyticsConsent';
 
 // Import global styles
 import '../styles/globals.css';
+import '../styles/animation.css';
 
 /**
  * Main application component wrapper
