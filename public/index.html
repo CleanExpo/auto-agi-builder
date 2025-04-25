@@ -1,67 +1,134 @@
-<!DOCTYPE html> 
-<html lang="en"> 
-<head> 
-  <meta charset="UTF-8"> 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-  <title>Auto AGI Builder</title> 
-  <style> 
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; 
-      margin: 0; 
-      padding: 0; 
-      box-sizing: border-box; 
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); 
-      min-height: 100vh; 
-      display: flex; 
-      flex-direction: column; 
-      justify-content: center; 
-      align-items: center; 
-    } 
-    .container { 
-      background-color: white; 
-      border-radius: 12px; 
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-      padding: 2rem; 
-      max-width: 800px; 
-      width: 90%; 
-      text-align: center; 
-    } 
-    h1 { 
-      color: #333; 
-      margin-bottom: 1rem; 
-      font-size: 2.5rem; 
-    } 
-    p { 
-      color: #666; 
-      font-size: 1.2rem; 
-      line-height: 1.6; 
-    } 
-    .status { 
-      margin: 2rem 0; 
-      padding: 1rem; 
-      background-color: #e8f5e9; 
-      border-radius: 8px; 
-      color: #2e7d32; 
-      font-weight: bold; 
-    } 
-    .footer { 
-      margin-top: 2rem; 
-      font-size: 0.9rem; 
-      color: #999; 
-    } 
-  </style> 
-</head> 
-<body> 
-  <div class="container"> 
-    <h1>Auto AGI Builder</h1> 
-    <p>Intelligent software solution for automating your development workflow</p> 
-    <div class="status"> 
-      ✅ Deployment Successful! Public access is working correctly. 
-    </div> 
-    <p>This simplified page confirms that the Vercel deployment configuration is functioning properly with public access enabled.</p> 
-    <div class="footer"> 
-      © 2025 Auto AGI Builder 
-    </div> 
-  </div> 
-</body> 
-</html> 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto AGI Builder</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #f5f7fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            background: linear-gradient(135deg, #4a6cf7 0%, #2a3df4 100%);
+            color: white;
+            padding: 3rem 0;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        header p {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            padding: 4rem 0;
+        }
+        .feature {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+        .feature:hover {
+            transform: translateY(-5px);
+        }
+        .feature h3 {
+            color: #4a6cf7;
+            font-size: 1.5rem;
+            margin-top: 0;
+        }
+        .cta {
+            background: #f0f4f9;
+            padding: 4rem 0;
+            text-align: center;
+        }
+        .button {
+            display: inline-block;
+            background: #4a6cf7;
+            color: white;
+            padding: 0.8rem 2rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+        .button:hover {
+            background: #2a3df4;
+        }
+        footer {
+            background: #2d3748;
+            color: #a0aec0;
+            padding: 2rem 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Auto AGI Builder</h1>
+            <p>Streamline your AGI development process with our comprehensive toolset</p>
+        </div>
+    </header>
+
+    <section class="container">
+        <div class="features">
+            <div class="feature">
+                <h3>Document Import</h3>
+                <p>Import and analyze documents to extract requirements and insights for your AGI projects. Support for multiple file formats.</p>
+            </div>
+            <div class="feature">
+                <h3>Requirements Management</h3>
+                <p>Track, prioritize, and manage project requirements with an intuitive interface. Never miss critical specifications.</p>
+            </div>
+            <div class="feature">
+                <h3>ROI Calculator</h3>
+                <p>Evaluate the return on investment for your AGI implementation with our detailed metrics and analysis tools.</p>
+            </div>
+            <div class="feature">
+                <h3>Demo Data Generation</h3>
+                <p>Generate realistic test data to validate your AGI models and ensure they perform as expected in real-world scenarios.</p>
+            </div>
+            <div class="feature">
+                <h3>Device Preview</h3>
+                <p>Test your AGI interfaces across multiple device form factors to ensure consistent user experience.</p>
+            </div>
+            <div class="feature">
+                <h3>Project Roadmapping</h3>
+                <p>Plan your AGI development journey with interactive roadmaps and timeline visualization tools.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to accelerate your AGI development?</h2>
+            <p>Create an account to get started with the full suite of tools.</p>
+            <a href="#" class="button">Get Started</a>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>© 2025 Auto AGI Builder. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
