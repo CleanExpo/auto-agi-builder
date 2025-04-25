@@ -1,123 +1,99 @@
 @echo off
-echo ===================================================
-echo        Auto AGI Builder - Deployment Script
-echo ===================================================
-
-echo.
-echo Checking prerequisites for deployment...
-
-REM Check if git is installed
-git --version >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo ERROR: Git is not installed or not in PATH.
-    echo Please install Git from https://git-scm.com/downloads
-    pause
-    exit /b 1
-)
-
-REM Check if required files exist
-if not exist "autonomous_builder_modular.py" (
-    echo ERROR: autonomous_builder_modular.py is missing!
-    echo Cannot proceed with deployment.
-    pause
-    exit /b 1
-)
-
-echo.
-echo Which deployment target would you like to use?
-echo.
-echo 1. Vercel (recommended)
-echo 2. Netlify
-echo 3. AWS
-echo 4. Custom
+echo ===================================
+echo AUTO AGI BUILDER DEPLOYMENT RUNNER
+echo ===================================
 echo.
 
-set /p DEPLOY_TARGET="Enter your choice (1-4): "
+echo This script will help launch the deployment pipeline scripts.
+echo.
 
-if "%DEPLOY_TARGET%"=="1" (
-    set TARGET=vercel
-    echo.
-    echo Checking if Vercel CLI is installed...
-    vercel --version >nul 2>&1
-    if %ERRORLEVEL% neq 0 (
-        echo Vercel CLI is not installed. Installing...
-        npm install -g vercel
-    ) else (
-        echo Vercel CLI is already installed.
-    )
-) else if "%DEPLOY_TARGET%"=="2" (
-    set TARGET=netlify
-    echo.
-    echo Checking if Netlify CLI is installed...
-    netlify --version >nul 2>&1
-    if %ERRORLEVEL% neq 0 (
-        echo Netlify CLI is not installed. Installing...
-        npm install -g netlify-cli
-    ) else (
-        echo Netlify CLI is already installed.
-    )
-) else if "%DEPLOY_TARGET%"=="3" (
-    set TARGET=aws
-    echo.
-    echo Checking if AWS CLI is installed...
-    aws --version >nul 2>&1
-    if %ERRORLEVEL% neq 0 (
-        echo AWS CLI is not installed.
-        echo Please install AWS CLI from https://aws.amazon.com/cli/
-        pause
-        exit /b 1
-    ) else (
-        echo AWS CLI is already installed.
-    )
-) else if "%DEPLOY_TARGET%"=="4" (
-    echo.
-    set /p TARGET="Enter your custom deployment target: "
+REM Check if in the Desktop directory
+cd | find "Desktop" > nul
+if %ERRORLEVEL% EQU 0 (
+  echo Current directory is Desktop.
 ) else (
-    echo Invalid choice. Exiting.
-    pause
-    exit /b 1
+  echo WARNING: You are not in the Desktop directory.
+  echo You might be in a different location than the deployment scripts.
+  echo.
+  echo Current directory:
+  cd
+  echo.
+  set /p CONTINUE=Continue anyway? (Y/N): 
+  if /i not "%CONTINUE%"=="Y" exit /b 1
 )
 
-echo.
-echo Preparing project for deployment...
+REM Check if required scripts exist in current directory
+set MISSING_SCRIPTS=0
+if not exist "run-deploy-pipeline.bat" (
+  echo ERROR: run-deploy-pipeline.bat not found in current directory
+  set MISSING_SCRIPTS=1
+)
 
-REM Check if the project has been set up
-if not exist "frontend\package.json" (
-    echo WARNING: Frontend package.json not found. Running project setup first...
+if %MISSING_SCRIPTS% NEQ 0 (
+  echo.
+  echo One or more required scripts are missing from the current directory.
+  echo.
+  echo Files in current directory:
+  dir *.bat *.ps1
+  echo.
+  echo Please ensure you're in the directory containing the deployment scripts.
+  echo.
+  set /p GO_TO_DESKTOP=Would you like to copy essential files to Desktop and run from there? (Y/N): 
+  
+  if /i "%GO_TO_DESKTOP%"=="Y" (
     echo.
+    echo Copying scripts to Desktop...
     
-    set /p PROJECT_NAME="Enter project name for setup: "
-    python autonomous_builder_modular.py setup --name %PROJECT_NAME%
+    REM Copy necessary files to Desktop if they exist
+    if exist "storage-setup.bat" copy "storage-setup.bat" %USERPROFILE%\Desktop\
+    if exist "auth-setup.bat" copy "auth-setup.bat" %USERPROFILE%\Desktop\
+    if exist "database-setup.bat" copy "database-setup.bat" %USERPROFILE%\Desktop\
+    if exist "git-commit-and-push.bat" copy "git-commit-and-push.bat" %USERPROFILE%\Desktop\
+    if exist "run-deploy-pipeline.bat" copy "run-deploy-pipeline.bat" %USERPROFILE%\Desktop\
+    if exist "verify-deployment.bat" copy "verify-deployment.bat" %USERPROFILE%\Desktop\
+    if exist "run-deploy-pipeline.ps1" copy "run-deploy-pipeline.ps1" %USERPROFILE%\Desktop\
     
-    if %ERRORLEVEL% neq 0 (
-        echo ERROR: Project setup failed.
-        pause
-        exit /b 1
-    )
-    
-    echo Project setup completed.
-)
-
-echo.
-echo Running deployment to %TARGET%...
-python autonomous_builder_modular.py deploy --target %TARGET%
-
-if %ERRORLEVEL% neq 0 (
     echo.
-    echo ERROR: Deployment failed. Please check the errors above.
-    pause
+    echo Files copied to Desktop.
+    echo Please navigate to Desktop and run the deployment from there.
+    echo.
+    echo cd %USERPROFILE%\Desktop
+    echo run-deploy-pipeline.bat
+    
+    exit /b 0
+  ) else (
+    echo Operation cancelled.
     exit /b 1
+  )
 )
 
 echo.
-echo ===================================================
-echo Deployment completed successfully!
-echo.
-echo Your application has been deployed to %TARGET%.
-echo.
-echo If you need to check the deployment status or make changes,
-echo please refer to the %TARGET% dashboard or documentation.
-echo ===================================================
+echo Choose how to run the deployment pipeline:
+echo 1. Command Prompt (run-deploy-pipeline.bat)
+echo 2. PowerShell with dot prefix (.\run-deploy-pipeline.bat)
+echo 3. PowerShell with bypass (powershell -ExecutionPolicy Bypass -File .\run-deploy-pipeline.ps1)
 echo.
 
-pause
+set /p RUN_OPTION=Enter your choice (1-3): 
+
+if "%RUN_OPTION%"=="1" (
+  echo.
+  echo Running deployment pipeline in Command Prompt...
+  echo.
+  call run-deploy-pipeline.bat
+) else if "%RUN_OPTION%"=="2" (
+  echo.
+  echo Running deployment pipeline in PowerShell with dot prefix...
+  echo.
+  powershell -Command ".\run-deploy-pipeline.bat"
+) else if "%RUN_OPTION%"=="3" (
+  echo.
+  echo Running deployment pipeline in PowerShell with execution policy bypass...
+  echo.
+  powershell -ExecutionPolicy Bypass -File .\run-deploy-pipeline.ps1
+) else (
+  echo Invalid option. Please run run-deploy-pipeline.bat directly.
+  exit /b 1
+)
+
+exit /b 0

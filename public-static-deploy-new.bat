@@ -1,13 +1,13 @@
 @echo off
 echo ===================================
-echo DEPLOY STATIC HTML SITE TO VERCEL
+echo DEPLOY STATIC HTML SITE TO VERCEL WITH NEW TOKEN
 echo ===================================
 echo.
 
 REM Set token
-set VERCEL_TOKEN=KonDHjm0W49MCzxw3XDncrfu
+set VERCEL_TOKEN=Pw7I99gIA8XMPDsfmENaZ7Nq
 
-echo Setting up a static site deployment with your existing token...
+echo Setting up a static site deployment with your new token...
 echo.
 
 REM Create .vercelignore file
@@ -26,7 +26,8 @@ echo } >> vercel.json
 
 REM Add the modified files to git
 echo Adding configuration files to git...
-git add vercel.json .vercelignore public/index.html
+git add vercel.json .vercelignore
+if exist public\index.html git add public\index.html
 
 REM Commit the changes
 echo Committing changes...
@@ -39,9 +40,9 @@ if %ERRORLEVEL% neq 0 (
   npm install -g vercel
 )
 
-REM Deploy with existing token and public access
+REM Deploy directly as a fresh project with no linking to avoid scope issues
 echo Deploying static site to Vercel with public access...
-vercel --prod --token %VERCEL_TOKEN% --public
+vercel --token %VERCEL_TOKEN% --public --prod --yes
 
 echo.
 echo ===================================
@@ -54,7 +55,9 @@ echo If you're still experiencing access issues:
 echo.
 echo 1. Check the deployment URL in an incognito/private window
 echo 2. Ensure vercel.json has the "public": true setting
-echo 3. Create a new project in a Vercel team (teams have different permission settings)
+echo 3. Try one of these options:
+echo    a. Login to Vercel and create a team, then link your project to that team
+echo    b. Try deploying without any linking (current approach)
 echo.
 echo See VERCEL-PUBLIC-ACCESS-GUIDE.md for additional troubleshooting options.
 echo.

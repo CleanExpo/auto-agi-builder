@@ -1,4 +1,14 @@
 node_modules 
 .env 
 .env.* 
+!frontend/.env.production 
 .git 
+app/ 
+frontend/ 
+!frontend/pages 
+!frontend/components 
+!frontend/styles 
+!frontend/public 
+quadrants/ 
+*.py 
+!public/ 

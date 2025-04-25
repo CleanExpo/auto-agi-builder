@@ -1,4 +1,14 @@
-{ 
-  "version": 2, 
-  "public": true 
-} 
+{
+  "version": 2,
+  "public": true,
+  "buildCommand": null,
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://api-auto-agi-builder.vercel.app/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "github": {
+    "enabled": false,
+    "silent": true
+  }
+}
