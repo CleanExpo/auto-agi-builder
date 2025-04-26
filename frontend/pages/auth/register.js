@@ -1,145 +1,189 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import Layout from '../../components/layout/Layout';
-import { useAuth, useUI } from '../../contexts';
+import Head from 'next/head';
+import { useAuth } from '../../contexts/AuthContext';
 
-const Register = () => {
+const RegisterPage = () => {
+  // Form state
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0); // 0-4 scale
+  
+  // Router and auth context
   const router = useRouter();
-  const { signUp, isAuthenticated, loading: authLoading } = useAuth();
-  const { toast } = useUI();
-  
-  const [formState, setFormState] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    full_name: '',
-    company_name: '',
-  });
-  
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
-  
-  // Redirect if user is already authenticated
+  const { register, isAuthenticated, error } = useAuth();
+  const { redirect } = router.query;
+
+  // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
-      router.push('/dashboard');
+    if (isAuthenticated) {
+      router.push(redirect || '/dashboard');
     }
-  }, [isAuthenticated, authLoading, router]);
-  
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormState(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  }, [isAuthenticated, router, redirect]);
+
+  // Handle auth error from context
+  useEffect(() => {
+    if (error) {
+      setFormError(error);
+    }
+  }, [error]);
+
+  // Check password strength
+  const checkPasswordStrength = (password) => {
+    let strength = 0;
     
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: undefined
-      }));
+    if (password.length >= 8) {
+      strength += 1;
     }
+    
+    if (password.match(/[A-Z]/)) {
+      strength += 1;
+    }
+    
+    if (password.match(/[0-9]/)) {
+      strength += 1;
+    }
+    
+    if (password.match(/[^A-Za-z0-9]/)) {
+      strength += 1;
+    }
+    
+    setPasswordStrength(strength);
   };
-  
-  const validateForm = () => {
-    const newErrors = {};
-    
-    // Validate email
-    if (!formState.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formState.email)) {
-      newErrors.email = 'Invalid email address';
-    }
-    
-    // Validate password
-    if (!formState.password) {
-      newErrors.password = 'Password is required';
-    } else if (formState.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    } else if (!/[A-Z]/.test(formState.password)) {
-      newErrors.password = 'Password must contain at least one uppercase letter';
-    } else if (!/[a-z]/.test(formState.password)) {
-      newErrors.password = 'Password must contain at least one lowercase letter';
-    } else if (!/\d/.test(formState.password)) {
-      newErrors.password = 'Password must contain at least one number';
-    }
-    
-    // Validate confirm password
-    if (formState.password !== formState.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-    
-    // Validate full name
-    if (!formState.full_name) {
-      newErrors.full_name = 'Full name is required';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+  // Handle password change
+  const handlePasswordChange = (e) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    checkPasswordStrength(newPassword);
   };
-  
+
+  // Get color and label for password strength indicator
+  const getPasswordStrengthInfo = () => {
+    const strengthLabels = ['Very Weak', 'Weak', 'Moderate', 'Strong', 'Very Strong'];
+    const strengthColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-400', 'bg-green-600'];
+    
+    return {
+      label: strengthLabels[passwordStrength],
+      color: strengthColors[passwordStrength],
+      width: `${(passwordStrength + 1) * 20}%`,
+    };
+  };
+
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
+    setFormError('');
+    setIsSubmitting(true);
+
+    // Basic validation
+    if (!name || !email || !password || !passwordConfirm) {
+      setFormError('All fields are required');
+      setIsSubmitting(false);
       return;
     }
-    
-    setLoading(true);
-    
-    try {
-      const { email, password, full_name, company_name } = formState;
-      const result = await signUp({
-        email,
-        password,
-        full_name,
-        company_name: company_name || undefined,
-      });
-      
-      if (result.success) {
-        toast.success('Account created successfully! Please check your email to verify your account.');
-        router.push('/dashboard');
-      } else {
-        setErrors({ form: result.error || 'Failed to create account. Please try again.' });
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      setErrors({ form: 'An unexpected error occurred. Please try again.' });
-    } finally {
-      setLoading(false);
+
+    if (password !== passwordConfirm) {
+      setFormError('Passwords do not match');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (password.length < 8) {
+      setFormError('Password must be at least 8 characters long');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Attempt registration
+    const result = await register(name, email, password, passwordConfirm);
+
+    // If registration successful, redirect
+    if (result.success) {
+      router.push(redirect || '/dashboard');
+    } else {
+      setIsSubmitting(false);
     }
   };
-  
+
+  const strengthInfo = getPasswordStrengthInfo();
+
   return (
-    <Layout title="Sign Up">
-      <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <>
+      <Head>
+        <title>Register | Auto AGI Builder</title>
+        <meta name="description" content="Create your Auto AGI Builder account" />
+      </Head>
+
+      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        {/* Logo and title */}
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Create your account
+          <div className="flex justify-center">
+            <div className="h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xl font-bold">
+              A
+            </div>
+          </div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Create a new account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Already have an account?{' '}
-            <Link href="/auth/login" className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500">
-              Sign in
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Or{' '}
+            <Link href="/auth/login" className="font-medium text-blue-600 hover:text-blue-500">
+              sign in to your existing account
             </Link>
           </p>
         </div>
 
+        {/* Form container */}
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
-            {/* Form error message */}
-            {errors.form && (
-              <div className="mb-4 p-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm rounded-md">
-                {errors.form}
+          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            {/* Error display */}
+            {formError && (
+              <div className="rounded-md bg-red-50 p-4 mb-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">{formError}</h3>
+                  </div>
+                </div>
               </div>
             )}
-            
+
+            {/* Register form */}
             <form className="space-y-6" onSubmit={handleSubmit}>
-              {/* Email field */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                  Full name
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    autoComplete="name"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email address
                 </label>
                 <div className="mt-1">
@@ -149,63 +193,15 @@ const Register = () => {
                     type="email"
                     autoComplete="email"
                     required
-                    value={formState.email}
-                    onChange={handleChange}
-                    className={`appearance-none block w-full px-3 py-2 border ${
-                      errors.email ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
-                    } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                  />
-                </div>
-                {errors.email && (
-                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
-                )}
-              </div>
-
-              {/* Full Name field */}
-              <div>
-                <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Full Name
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="full_name"
-                    name="full_name"
-                    type="text"
-                    autoComplete="name"
-                    required
-                    value={formState.full_name}
-                    onChange={handleChange}
-                    className={`appearance-none block w-full px-3 py-2 border ${
-                      errors.full_name ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
-                    } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
-                  />
-                </div>
-                {errors.full_name && (
-                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.full_name}</p>
-                )}
-              </div>
-
-              {/* Company Name field (optional) */}
-              <div>
-                <label htmlFor="company_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Company Name (optional)
-                </label>
-                <div className="mt-1">
-                  <input
-                    id="company_name"
-                    name="company_name"
-                    type="text"
-                    autoComplete="organization"
-                    value={formState.company_name}
-                    onChange={handleChange}
-                    className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
                 </div>
               </div>
 
-              {/* Password field */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
                 <div className="mt-1">
@@ -215,119 +211,122 @@ const Register = () => {
                     type="password"
                     autoComplete="new-password"
                     required
-                    value={formState.password}
-                    onChange={handleChange}
-                    className={`appearance-none block w-full px-3 py-2 border ${
-                      errors.password ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
-                    } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                    value={password}
+                    onChange={handlePasswordChange}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
                 </div>
-                {errors.password && (
-                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.password}</p>
+                {password && (
+                  <div className="mt-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div
+                        className={`${strengthInfo.color} h-2.5 rounded-full transition-all duration-300`}
+                        style={{ width: strengthInfo.width }}
+                      ></div>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Password strength: {strengthInfo.label}
+                    </p>
+                  </div>
                 )}
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Password must be at least 8 characters and include uppercase, lowercase, and numbers.
-                </p>
               </div>
 
-              {/* Confirm Password field */}
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Confirm Password
+                <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700">
+                  Confirm password
                 </label>
                 <div className="mt-1">
                   <input
-                    id="confirmPassword"
-                    name="confirmPassword"
+                    id="confirm-password"
+                    name="confirm-password"
                     type="password"
                     autoComplete="new-password"
                     required
-                    value={formState.confirmPassword}
-                    onChange={handleChange}
-                    className={`appearance-none block w-full px-3 py-2 border ${
-                      errors.confirmPassword ? 'border-red-300 dark:border-red-700' : 'border-gray-300 dark:border-gray-600'
-                    } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                    value={passwordConfirm}
+                    onChange={(e) => setPasswordConfirm(e.target.value)}
+                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   />
                 </div>
-                {errors.confirmPassword && (
-                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.confirmPassword}</p>
+                {password && passwordConfirm && (
+                  <div className="mt-1">
+                    {password === passwordConfirm ? (
+                      <p className="text-xs text-green-500">Passwords match</p>
+                    ) : (
+                      <p className="text-xs text-red-500">Passwords do not match</p>
+                    )}
+                  </div>
                 )}
               </div>
 
-              {/* Terms of Service */}
               <div className="flex items-center">
                 <input
                   id="terms"
                   name="terms"
                   type="checkbox"
                   required
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="terms" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
+                <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
                   I agree to the{' '}
-                  <Link href="/terms" className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500">
+                  <a href="/terms" className="text-blue-600 hover:text-blue-500">
                     Terms of Service
-                  </Link>{' '}
+                  </a>{' '}
                   and{' '}
-                  <Link href="/privacy" className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500">
+                  <a href="/privacy" className="text-blue-600 hover:text-blue-500">
                     Privacy Policy
-                  </Link>
+                  </a>
                 </label>
               </div>
 
-              {/* Submit button */}
               <div>
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting}
+                  className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                    isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                  }`}
                 >
-                  {loading ? 'Creating account...' : 'Sign up'}
+                  {isSubmitting ? 'Creating account...' : 'Create account'}
                 </button>
               </div>
             </form>
 
-            {/* Social signup options */}
+            {/* OAuth divider */}
             <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                  <div className="w-full border-t border-gray-300"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                    Or continue with
-                  </span>
+                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
                 </div>
               </div>
 
+              {/* OAuth buttons */}
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <div>
                   <button
                     type="button"
-                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-sm font-medium text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
-                    onClick={() => toast.info('Google sign up not implemented yet')}
+                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                   >
-                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                      <path d="M10 0C4.477 0 0 4.477 0 10C0 15.523 4.477 20 10 20C15.523 20 20 15.523 20 10C20 4.477 15.523 0 10 0ZM10 7.5C11.381 7.5 12.5 8.619 12.5 10C12.5 11.381 11.381 12.5 10 12.5C8.619 12.5 7.5 11.381 7.5 10C7.5 8.619 8.619 7.5 10 7.5Z" />
+                    <svg className="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M6.29 18.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0020 3.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.073 4.073 0 01.8 7.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 010 16.407a11.616 11.616 0 006.29 1.84" />
                     </svg>
-                    <span className="ml-2">Google</span>
                   </button>
                 </div>
 
                 <div>
                   <button
                     type="button"
-                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-sm font-medium text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
-                    onClick={() => toast.info('GitHub sign up not implemented yet')}
+                    className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                   >
-                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <svg className="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
                       <path
                         fillRule="evenodd"
-                        d="M10 0C4.477 0 0 4.477 0 10C0 14.42 2.87 18.17 6.84 19.5C7.34 19.58 7.5 19.27 7.5 19C7.5 18.77 7.5 18.14 7.5 17.31C4.73 17.91 4.14 15.97 4.14 15.97C3.68 14.81 3.03 14.5 3.03 14.5C2.12 13.88 3.1 13.9 3.1 13.9C4.1 13.97 4.63 14.93 4.63 14.93C5.5 16.45 6.97 16 7.54 15.76C7.63 15.11 7.89 14.67 8.17 14.42C5.95 14.17 3.62 13.31 3.62 9.5C3.62 8.39 4 7.5 4.65 6.79C4.57 6.54 4.2 5.5 4.75 4.15C4.75 4.15 5.59 3.88 7.5 5.17C8.29 4.95 9.15 4.84 10 4.84C10.85 4.84 11.71 4.95 12.5 5.17C14.41 3.88 15.25 4.15 15.25 4.15C15.8 5.5 15.43 6.54 15.35 6.79C16 7.5 16.38 8.39 16.38 9.5C16.38 13.32 14.04 14.16 11.81 14.41C12.17 14.72 12.5 15.33 12.5 16.26C12.5 17.6 12.5 18.68 12.5 19C12.5 19.27 12.66 19.59 13.17 19.5C17.14 18.16 20 14.42 20 10C20 4.477 15.523 0 10 0Z"
+                        d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z"
                         clipRule="evenodd"
                       />
                     </svg>
-                    <span className="ml-2">GitHub</span>
                   </button>
                 </div>
               </div>
@@ -335,8 +334,8 @@ const Register = () => {
           </div>
         </div>
       </div>
-    </Layout>
+    </>
   );
 };
 
-export default Register;
+export default RegisterPage;
