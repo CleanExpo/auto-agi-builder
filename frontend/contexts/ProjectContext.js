@@ -1,314 +1,314 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api from '../lib/api';
-import { useUI } from './UIContext';
+import { useRouter } from 'next/router';
+import { toast } from 'react-toastify';
+
+import { projectService } from '../services/projectService';
+import { useAuth } from './AuthContext';
 
 // Create context
-const ProjectContext = createContext();
+const ProjectContext = createContext({});
 
 /**
- * Provider component for project data
- * Manages project state and CRUD operations
+ * Provider component that wraps the application to provide project state
  */
 export const ProjectProvider = ({ children }) => {
-  const { toast } = useUI();
+  const { isAuthenticated, user } = useAuth();
+  const router = useRouter();
   
-  // Projects state
+  // State for projects
   const [projects, setProjects] = useState([]);
   const [currentProject, setCurrentProject] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Fetch all projects
-  const fetchProjects = useCallback(async () => {
-    setIsLoading(true);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    pageSize: 10,
+  });
+  const [filters, setFilters] = useState({
+    status: null,
+    project_type: null,
+    is_public: null,
+  });
+  
+  /**
+   * Load projects list with pagination and filters
+   */
+  const loadProjects = useCallback(async (page = 1, pageSize = 10, newFilters = null) => {
+    if (!isAuthenticated) return;
+    
+    setLoading(true);
     setError(null);
     
     try {
-      const response = await api.get('/projects');
-      setProjects(response.data.projects);
-      return response.data.projects;
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to fetch projects';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      return [];
+      // Apply new filters if provided, otherwise use current filters
+      const appliedFilters = newFilters !== null ? newFilters : filters;
+      if (newFilters !== null) {
+        setFilters(newFilters);
+      }
+      
+      const data = await projectService.getAllProjects(appliedFilters, page, pageSize);
+      setProjects(data.items);
+      setPagination({
+        total: data.total,
+        page: data.page,
+        pageSize: data.page_size,
+      });
+    } catch (err) {
+      console.error('Error loading projects:', err);
+      setError('Failed to load projects. Please try again.');
+      toast.error('Failed to load projects');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [toast]);
+  }, [isAuthenticated, filters]);
   
-  // Fetch a specific project by ID
-  const fetchProject = useCallback(async (projectId) => {
-    setIsLoading(true);
+  /**
+   * Load a specific project by ID
+   */
+  const loadProject = useCallback(async (id) => {
+    if (!isAuthenticated || !id) return;
+    
+    setLoading(true);
     setError(null);
     
     try {
-      const response = await api.get(`/projects/${projectId}`);
-      return { success: true, project: response.data.project };
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || `Failed to fetch project ${projectId}`;
-      setError(errorMessage);
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
+      const project = await projectService.getProject(id);
+      setCurrentProject(project);
+    } catch (err) {
+      console.error(`Error loading project ${id}:`, err);
+      setError('Failed to load project details.');
+      toast.error('Failed to load project details');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [toast]);
+  }, [isAuthenticated]);
   
-  // Create a new project
+  /**
+   * Create a new project
+   */
   const createProject = useCallback(async (projectData) => {
-    setIsLoading(true);
+    if (!isAuthenticated) return null;
+    
+    setLoading(true);
     setError(null);
     
     try {
-      const response = await api.post('/projects', projectData);
+      const newProject = await projectService.createProject(projectData);
+      // Refresh projects list
+      loadProjects();
+      toast.success('Project created successfully');
+      return newProject;
+    } catch (err) {
+      console.error('Error creating project:', err);
+      setError('Failed to create project.');
+      toast.error('Failed to create project');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated, loadProjects]);
+  
+  /**
+   * Update an existing project
+   */
+  const updateProject = useCallback(async (id, projectData) => {
+    if (!isAuthenticated) return null;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const updatedProject = await projectService.updateProject(id, projectData);
       
-      // Add to projects list
-      setProjects((prev) => [...prev, response.data.project]);
-      
-      // Set as current project if no current project is selected
-      if (!currentProject) {
-        setCurrentProject(response.data.project);
+      // If this is the current project, update it
+      if (currentProject && currentProject.id === id) {
+        setCurrentProject(updatedProject);
       }
       
-      return { success: true, project: response.data.project };
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to create project';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
+      // Refresh projects list
+      loadProjects();
+      toast.success('Project updated successfully');
+      return updatedProject;
+    } catch (err) {
+      console.error(`Error updating project ${id}:`, err);
+      setError('Failed to update project.');
+      toast.error('Failed to update project');
+      return null;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [currentProject, toast]);
+  }, [isAuthenticated, loadProjects, currentProject]);
   
-  // Update an existing project
-  const updateProject = useCallback(async (projectId, projectData) => {
-    setIsLoading(true);
+  /**
+   * Delete a project
+   */
+  const deleteProject = useCallback(async (id) => {
+    if (!isAuthenticated) return false;
+    
+    setLoading(true);
     setError(null);
     
     try {
-      const response = await api.put(`/projects/${projectId}`, projectData);
+      await projectService.deleteProject(id);
       
-      // Update in projects list
-      setProjects((prev) => 
-        prev.map((project) => 
-          project.id === projectId ? response.data.project : project
-        )
-      );
-      
-      // Update current project if needed
-      if (currentProject?.id === projectId) {
-        setCurrentProject(response.data.project);
-      }
-      
-      return { success: true, project: response.data.project };
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to update project';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentProject, toast]);
-  
-  // Delete a project
-  const deleteProject = useCallback(async (projectId) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      await api.delete(`/projects/${projectId}`);
-      
-      // Remove from projects list
-      setProjects((prev) => prev.filter((project) => project.id !== projectId));
-      
-      // Clear current project if needed
-      if (currentProject?.id === projectId) {
+      // If this is the current project, clear it
+      if (currentProject && currentProject.id === id) {
         setCurrentProject(null);
       }
       
-      return { success: true };
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to delete project';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
+      // Refresh projects list
+      loadProjects();
+      toast.success('Project deleted successfully');
+      return true;
+    } catch (err) {
+      console.error(`Error deleting project ${id}:`, err);
+      setError('Failed to delete project.');
+      toast.error('Failed to delete project');
+      return false;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [currentProject, toast]);
+  }, [isAuthenticated, loadProjects, currentProject]);
   
-  // Set active project
-  const setActiveProject = useCallback((project) => {
-    setCurrentProject(project);
+  /**
+   * Add a contributor to a project
+   */
+  const addContributor = useCallback(async (projectId, userId) => {
+    if (!isAuthenticated) return false;
     
-    // Store in local storage to persist selection
-    if (project) {
-      localStorage.setItem('currentProjectId', project.id);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const updatedProject = await projectService.addContributor(projectId, userId);
+      
+      // If this is the current project, update it
+      if (currentProject && currentProject.id === projectId) {
+        setCurrentProject(updatedProject);
+      }
+      
+      toast.success('Contributor added successfully');
+      return true;
+    } catch (err) {
+      console.error(`Error adding contributor to project ${projectId}:`, err);
+      setError('Failed to add contributor.');
+      toast.error('Failed to add contributor');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated, currentProject]);
+  
+  /**
+   * Remove a contributor from a project
+   */
+  const removeContributor = useCallback(async (projectId, userId) => {
+    if (!isAuthenticated) return false;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const updatedProject = await projectService.removeContributor(projectId, userId);
+      
+      // If this is the current project, update it
+      if (currentProject && currentProject.id === projectId) {
+        setCurrentProject(updatedProject);
+      }
+      
+      toast.success('Contributor removed successfully');
+      return true;
+    } catch (err) {
+      console.error(`Error removing contributor from project ${projectId}:`, err);
+      setError('Failed to remove contributor.');
+      toast.error('Failed to remove contributor');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated, currentProject]);
+  
+  /**
+   * Get project statistics
+   */
+  const getProjectStats = useCallback(async (id) => {
+    if (!isAuthenticated) return null;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const stats = await projectService.getProjectStats(id);
+      return stats;
+    } catch (err) {
+      console.error(`Error loading project stats for ${id}:`, err);
+      setError('Failed to load project statistics.');
+      toast.error('Failed to load project statistics');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+  
+  /**
+   * Load projects when user authentication changes
+   */
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadProjects();
     } else {
-      localStorage.removeItem('currentProjectId');
+      setProjects([]);
+      setCurrentProject(null);
     }
-  }, []);
+  }, [isAuthenticated, loadProjects]);
   
-  // Archive a project
-  const archiveProject = useCallback(async (projectId) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await api.put(`/projects/${projectId}/archive`);
-      
-      // Update in projects list
-      setProjects((prev) => 
-        prev.map((project) => 
-          project.id === projectId ? response.data.project : project
-        )
-      );
-      
-      // Update current project if needed
-      if (currentProject?.id === projectId) {
-        setCurrentProject(response.data.project);
-      }
-      
-      return { success: true, project: response.data.project };
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to archive project';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentProject, toast]);
-  
-  // Restore an archived project
-  const restoreProject = useCallback(async (projectId) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await api.put(`/projects/${projectId}/restore`);
-      
-      // Update in projects list
-      setProjects((prev) => 
-        prev.map((project) => 
-          project.id === projectId ? response.data.project : project
-        )
-      );
-      
-      // Update current project if needed
-      if (currentProject?.id === projectId) {
-        setCurrentProject(response.data.project);
-      }
-      
-      return { success: true, project: response.data.project };
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to restore project';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentProject, toast]);
-  
-  // Share project with another user
-  const shareProject = useCallback(async (projectId, userEmail, role = 'viewer') => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await api.post(`/projects/${projectId}/share`, {
-        email: userEmail,
-        role,
-      });
-      
-      toast.success(`Project shared with ${userEmail}`);
-      
-      return { success: true, share: response.data.share };
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to share project';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-  
-  // Remove user access from a project
-  const removeAccess = useCallback(async (projectId, userId) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      await api.delete(`/projects/${projectId}/share/${userId}`);
-      
-      toast.success('User access removed');
-      
-      return { success: true };
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to remove user access';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
-  
-  // Fetch projects on initial load
+  /**
+   * Clear current project when navigating away from project page
+   */
   useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
-  
-  // Restore current project from localStorage if available
-  useEffect(() => {
-    const storedProjectId = localStorage.getItem('currentProjectId');
-    
-    if (storedProjectId && projects.length > 0) {
-      const storedProject = projects.find((p) => p.id === storedProjectId);
-      
-      if (storedProject) {
-        setCurrentProject(storedProject);
-      } else {
-        // If stored project no longer exists, remove from localStorage
-        localStorage.removeItem('currentProjectId');
+    const handleRouteChange = (url) => {
+      if (!url.includes('/projects/')) {
+        setCurrentProject(null);
       }
-    }
-  }, [projects]);
+    };
+    
+    router.events.on('routeChangeStart', handleRouteChange);
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChange);
+    };
+  }, [router.events]);
   
   // Context value
   const value = {
     projects,
     currentProject,
-    isLoading,
+    loading,
     error,
-    fetchProjects,
-    fetchProject,
+    pagination,
+    filters,
+    loadProjects,
+    loadProject,
     createProject,
     updateProject,
     deleteProject,
-    setActiveProject,
-    archiveProject,
-    restoreProject,
-    shareProject,
-    removeAccess,
+    addContributor,
+    removeContributor,
+    getProjectStats,
+    setFilters,
   };
   
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
 };
 
-// Custom hook to use the project context
+/**
+ * Hook to use the project context
+ */
 export const useProject = () => {
   const context = useContext(ProjectContext);
-  
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useProject must be used within a ProjectProvider');
   }
-  
   return context;
 };
 
