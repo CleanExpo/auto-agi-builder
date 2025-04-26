@@ -58,28 +58,13 @@ const HeroSection = ({ onGetStarted }) => {
                   </div>
                 </div>
                 <div className="p-4 h-[380px] flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
-                  {/* Fallback UI when image not available */}
+                  {/* Use the base64 encoded prototype image */}
                   <div className="text-center">
-                    <div className="w-full h-[300px] rounded-md bg-gradient-to-r from-gray-800 to-gray-700 flex flex-col items-center justify-center p-6 border border-gray-700">
-                      <div className="w-full flex">
-                        <div className="w-1/4 border-r border-gray-700 pr-4">
-                          <div className="h-6 w-20 bg-gray-600 rounded mb-4"></div>
-                          <div className="h-4 w-24 bg-gray-600 rounded mb-3"></div>
-                          <div className="h-4 w-20 bg-gray-600 rounded mb-3"></div>
-                          <div className="h-4 w-22 bg-gray-600 rounded"></div>
-                        </div>
-                        <div className="w-3/4 pl-4">
-                          <div className="h-8 w-40 bg-blue-600 rounded mb-6"></div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="h-20 bg-gray-600 rounded"></div>
-                            <div className="h-20 bg-gray-600 rounded"></div>
-                            <div className="h-20 bg-gray-600 rounded"></div>
-                            <div className="h-20 bg-gray-600 rounded"></div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-blue-400 mt-6 font-medium">Auto AGI Builder Prototype Interface</div>
-                    </div>
+                    <img 
+                      src={require('../../components/home/prototypeImage').prototypeImageBase64} 
+                      alt="Auto AGI Builder Prototype Interface"
+                      className="w-full h-[300px] rounded-md object-contain border border-gray-700"
+                    />
                   </div>
                 </div>
               </div>
