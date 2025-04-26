@@ -1,225 +1,395 @@
 import React, { useState, useEffect } from 'react';
+import { 
+  Box, 
+  Button, 
+  TextField, 
+  FormControl, 
+  FormControlLabel, 
+  InputLabel, 
+  Select, 
+  MenuItem, 
+  Typography,
+  Grid,
+  CircularProgress,
+  Alert,
+  Switch,
+  Chip,
+  Autocomplete,
+  Divider
+} from '@mui/material';
+import { requirementService } from '../../services/requirementService';
+import { documentService } from '../../services/documentService';
 
-/**
- * Requirement Form Component
- * 
- * Form for creating and editing requirements with validation
- */
-const RequirementForm = ({ requirement, onSubmit, onCancel }) => {
-  // Default empty requirement if creating new
-  const emptyRequirement = {
+const RequirementForm = ({ projectId, initialData = null, onClose, onSuccess }) => {
+  const defaultFormData = {
+    project_id: projectId,
     title: '',
     description: '',
-    status: 'pending',
+    requirement_type: 'functional',
     priority: 'medium',
-    category: '',
-    assignee: ''
+    status: 'draft',
+    is_ai_generated: false,
+    acceptance_criteria: '',
+    source_document_id: null,
+    source_text_excerpt: '',
   };
   
-  // State for form fields
-  const [formData, setFormData] = useState(emptyRequirement);
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState(initialData || defaultFormData);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [succeeded, setSucceeded] = useState(false);
+  const [projectDocuments, setProjectDocuments] = useState([]);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
   
-  // Set form data when editing an existing requirement
+  // Load project documents for source document selection
   useEffect(() => {
-    if (requirement) {
-      setFormData(requirement);
-    }
-  }, [requirement]);
+    const fetchDocuments = async () => {
+      if (!projectId) return;
+      
+      setLoadingDocuments(true);
+      try {
+        const response = await documentService.getDocumentsByProject(projectId);
+        setProjectDocuments(response.items || []);
+      } catch (err) {
+        console.error('Error loading project documents:', err);
+      } finally {
+        setLoadingDocuments(false);
+      }
+    };
+    
+    fetchDocuments();
+  }, [projectId]);
   
-  // Handle input changes
+  // Set initial data if provided
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    } else {
+      setFormData({
+        ...defaultFormData,
+        project_id: projectId
+      });
+    }
+  }, [initialData, projectId]);
+  
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
+    
+    // For checkboxes, use checked property, otherwise use value
+    const newValue = type === 'checkbox' ? checked : value;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: newValue
     }));
     
-    // Clear error for the field being edited
-    if (errors[name]) {
-      setErrors(prev => ({
+    // Clear validation error when field is edited
+    if (validationErrors[name]) {
+      setValidationErrors(prev => ({
         ...prev,
         [name]: null
       }));
     }
   };
   
-  // Validate form
+  const handleSourceDocumentChange = (event, newValue) => {
+    setFormData(prev => ({
+      ...prev,
+      source_document_id: newValue ? newValue.id : null
+    }));
+  };
+  
   const validateForm = () => {
-    const newErrors = {};
+    const errors = {};
     
-    // Title is required
     if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
+      errors.title = 'Requirement title is required';
+    } else if (formData.title.length > 200) {
+      errors.title = 'Title must be 200 characters or less';
     }
     
-    // Validate other fields as needed
-    // ...
+    if (formData.description && formData.description.length > 2000) {
+      errors.description = 'Description must be 2000 characters or less';
+    }
     
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0; // Returns true if no errors
+    if (!formData.requirement_type) {
+      errors.requirement_type = 'Requirement type is required';
+    }
+    
+    if (!formData.priority) {
+      errors.priority = 'Priority is required';
+    }
+    
+    if (!formData.status) {
+      errors.status = 'Status is required';
+    }
+    
+    if (formData.acceptance_criteria && formData.acceptance_criteria.length > 1000) {
+      errors.acceptance_criteria = 'Acceptance criteria must be 1000 characters or less';
+    }
+    
+    if (formData.source_text_excerpt && formData.source_text_excerpt.length > 500) {
+      errors.source_text_excerpt = 'Source text excerpt must be 500 characters or less';
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
   
-  // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Don't submit if already submitting
-    if (isSubmitting) return;
+    if (!validateForm()) {
+      return;
+    }
     
-    // Validate form
-    if (!validateForm()) return;
+    setLoading(true);
+    setError(null);
     
-    setIsSubmitting(true);
-    
-    // Create a new object with form data (and add an ID if creating new)
-    const requirementData = {
-      ...formData,
-      id: formData.id || `req-${Date.now()}`, // Generate ID if new
-      createdAt: formData.createdAt || new Date().toISOString() // Set creation date if new
-    };
-    
-    // Submit to parent component
-    onSubmit(requirementData);
-    
-    // Reset form after submission
-    setFormData(emptyRequirement);
-    setIsSubmitting(false);
+    try {
+      let result;
+      
+      if (initialData) {
+        // Update existing requirement
+        result = await requirementService.updateRequirement(initialData.id, formData);
+      } else {
+        // Create new requirement
+        result = await requirementService.createRequirement(formData);
+      }
+      
+      setSucceeded(true);
+      
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess(result);
+      }
+    } catch (err) {
+      console.error('Error saving requirement:', err);
+      setError('Failed to save requirement. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
   
+  // Find source document object based on ID
+  const selectedDocument = formData.source_document_id 
+    ? projectDocuments.find(doc => doc.id === formData.source_document_id) 
+    : null;
+  
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Title <span className="text-red-500">*</span>
-        </label>
-        <div className="mt-1">
-          <input
-            type="text"
-            name="title"
+    <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 2 }}>
+      {/* Success and error alerts */}
+      {succeeded && (
+        <Alert severity="success" sx={{ mb: 3 }}>
+          Requirement {initialData ? 'updated' : 'created'} successfully!
+        </Alert>
+      )}
+      
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+      
+      <Grid container spacing={3}>
+        {/* Basic information */}
+        <Grid item xs={12}>
+          <TextField
+            required
+            fullWidth
             id="title"
+            name="title"
+            label="Requirement Title"
             value={formData.title}
             onChange={handleChange}
-            className={`shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md ${
-              errors.title ? 'border-red-500' : ''
-            }`}
-            placeholder="Enter requirement title"
+            error={!!validationErrors.title}
+            helperText={validationErrors.title}
+            disabled={loading}
           />
-          {errors.title && (
-            <p className="mt-1 text-sm text-red-500">{errors.title}</p>
-          )}
-        </div>
-      </div>
-      
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Description
-        </label>
-        <div className="mt-1">
-          <textarea
+        </Grid>
+        
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
             id="description"
             name="description"
-            rows={4}
+            label="Description"
             value={formData.description}
             onChange={handleChange}
-            className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
-            placeholder="Describe the requirement in detail"
+            error={!!validationErrors.description}
+            helperText={validationErrors.description}
+            multiline
+            rows={4}
+            disabled={loading}
           />
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div>
-          <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Status
-          </label>
-          <select
-            id="status"
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-          >
-            <option value="pending">Pending</option>
-            <option value="inProgress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="rejected">Rejected</option>
-          </select>
-        </div>
+        </Grid>
         
-        <div>
-          <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Priority
-          </label>
-          <select
-            id="priority"
-            name="priority"
-            value={formData.priority}
-            onChange={handleChange}
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="critical">Critical</option>
-          </select>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div>
-          <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Category
-          </label>
-          <div className="mt-1">
-            <input
-              type="text"
-              name="category"
-              id="category"
-              value={formData.category}
+        <Grid item xs={12} md={4}>
+          <FormControl fullWidth error={!!validationErrors.requirement_type} disabled={loading}>
+            <InputLabel id="requirement-type-label">Type</InputLabel>
+            <Select
+              labelId="requirement-type-label"
+              id="requirement_type"
+              name="requirement_type"
+              value={formData.requirement_type}
               onChange={handleChange}
-              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
-              placeholder="E.g. UI, Backend, Security"
-            />
-          </div>
-        </div>
+              label="Type"
+            >
+              <MenuItem value="functional">Functional</MenuItem>
+              <MenuItem value="non-functional">Non-Functional</MenuItem>
+              <MenuItem value="technical">Technical</MenuItem>
+              <MenuItem value="user">User</MenuItem>
+              <MenuItem value="business">Business</MenuItem>
+            </Select>
+            {validationErrors.requirement_type && (
+              <Typography variant="caption" color="error">
+                {validationErrors.requirement_type}
+              </Typography>
+            )}
+          </FormControl>
+        </Grid>
         
-        <div>
-          <label htmlFor="assignee" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Assignee
-          </label>
-          <div className="mt-1">
-            <input
-              type="text"
-              name="assignee"
-              id="assignee"
-              value={formData.assignee}
+        <Grid item xs={12} md={4}>
+          <FormControl fullWidth error={!!validationErrors.priority} disabled={loading}>
+            <InputLabel id="priority-label">Priority</InputLabel>
+            <Select
+              labelId="priority-label"
+              id="priority"
+              name="priority"
+              value={formData.priority}
               onChange={handleChange}
-              className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
-              placeholder="Assign to team member"
-            />
-          </div>
-        </div>
-      </div>
+              label="Priority"
+            >
+              <MenuItem value="low">Low</MenuItem>
+              <MenuItem value="medium">Medium</MenuItem>
+              <MenuItem value="high">High</MenuItem>
+              <MenuItem value="critical">Critical</MenuItem>
+            </Select>
+            {validationErrors.priority && (
+              <Typography variant="caption" color="error">
+                {validationErrors.priority}
+              </Typography>
+            )}
+          </FormControl>
+        </Grid>
+        
+        <Grid item xs={12} md={4}>
+          <FormControl fullWidth error={!!validationErrors.status} disabled={loading}>
+            <InputLabel id="status-label">Status</InputLabel>
+            <Select
+              labelId="status-label"
+              id="status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              label="Status"
+            >
+              <MenuItem value="draft">Draft</MenuItem>
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="completed">Completed</MenuItem>
+              <MenuItem value="blocked">Blocked</MenuItem>
+            </Select>
+            {validationErrors.status && (
+              <Typography variant="caption" color="error">
+                {validationErrors.status}
+              </Typography>
+            )}
+          </FormControl>
+        </Grid>
+        
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            id="acceptance_criteria"
+            name="acceptance_criteria"
+            label="Acceptance Criteria"
+            value={formData.acceptance_criteria}
+            onChange={handleChange}
+            error={!!validationErrors.acceptance_criteria}
+            helperText={validationErrors.acceptance_criteria || "Define the criteria that must be met for this requirement to be considered complete"}
+            multiline
+            rows={3}
+            disabled={loading}
+          />
+        </Grid>
+        
+        <Grid item xs={12}>
+          <Divider sx={{ my: 1 }} />
+          <Typography variant="subtitle1" gutterBottom>
+            Source Information
+          </Typography>
+        </Grid>
+        
+        <Grid item xs={12} md={6}>
+          <Autocomplete
+            id="source_document_id"
+            options={projectDocuments}
+            loading={loadingDocuments}
+            getOptionLabel={(option) => option.title || ''}
+            value={selectedDocument}
+            onChange={handleSourceDocumentChange}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Source Document"
+                helperText="Select the document this requirement was extracted from (optional)"
+                disabled={loading}
+              />
+            )}
+          />
+        </Grid>
+        
+        <Grid item xs={12} md={6}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={formData.is_ai_generated}
+                onChange={handleChange}
+                name="is_ai_generated"
+                color="primary"
+                disabled={loading}
+              />
+            }
+            label="Generated by AI"
+          />
+          <Typography variant="caption" color="textSecondary" display="block">
+            Indicate if this requirement was automatically extracted by AI
+          </Typography>
+        </Grid>
+        
+        <Grid item xs={12}>
+          <TextField
+            fullWidth
+            id="source_text_excerpt"
+            name="source_text_excerpt"
+            label="Source Text"
+            value={formData.source_text_excerpt}
+            onChange={handleChange}
+            error={!!validationErrors.source_text_excerpt}
+            helperText={validationErrors.source_text_excerpt || "Excerpt from source document that this requirement is based on (optional)"}
+            multiline
+            rows={3}
+            disabled={loading}
+          />
+        </Grid>
+      </Grid>
       
-      <div className="flex justify-end space-x-3">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4, gap: 2 }}>
+        <Button onClick={onClose} disabled={loading}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+        </Button>
+        <Button 
+          type="submit" 
+          variant="contained" 
+          color="primary" 
+          disabled={loading}
+          startIcon={loading && <CircularProgress size={20} />}
         >
-          {isSubmitting ? 'Saving...' : requirement ? 'Update Requirement' : 'Create Requirement'}
-        </button>
-      </div>
-    </form>
+          {initialData ? 'Update Requirement' : 'Create Requirement'}
+        </Button>
+      </Box>
+    </Box>
   );
 };
 
