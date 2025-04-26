@@ -10,5 +10,51 @@
   "github": {
     "enabled": false,
     "silent": true
-  }
+  },
+  "headers": [
+    {
+      "source": "/(.*)\\.(js|css|json)$",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)\\.js$",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)\\.compressed\\.js$",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript; charset=utf-8"
+        },
+        {
+          "key": "X-Compressed-By",
+          "value": "auto-agi-context-compression"
+        }
+      ]
+    },
+    {
+      "source": "/compressed-deploy/(.*)",
+      "headers": [
+        {
+          "key": "X-Compressed-By",
+          "value": "auto-agi-context-compression"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
 }
