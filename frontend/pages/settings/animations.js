@@ -1,103 +1,220 @@
 import React from 'react';
 import Layout from '../../components/layout/Layout';
 import PageWrapper from '../../components/layout/PageWrapper';
-import ResponsiveContainer from '../../components/common/ResponsiveContainer';
-import AnimationSettings from '../../components/settings/AnimationSettings';
-import { AnimationProvider } from '../../contexts/AnimationContext';
+import AnimatedCard from '../../components/common/AnimatedCard';
+import AnimatedButton from '../../components/common/AnimatedButton';
+import { useAnimationContext } from '../../contexts/AnimationContext';
 
 /**
  * Animation Settings Page
- * Handles customization of animation preferences throughout the app
- * Allows for reduced motion settings and tweaking animation parameters
+ * Provides user controls for animation preferences
  */
-const AnimationsPage = () => {
+const AnimationSettingsPage = () => {
+  const { 
+    animationsEnabled, 
+    animationSpeed, 
+    reduceMotionEnabled,
+    enableAnimations, 
+    disableAnimations, 
+    setAnimationSpeed,
+    enableReducedMotion,
+    disableReducedMotion
+  } = useAnimationContext();
+
   return (
     <Layout title="Animation Settings">
-      <AnimationProvider>
-        <PageWrapper
-          enterAnimation="animate-fade-in"
-          exitAnimation="animate-fade-out"
-        >
-          <ResponsiveContainer size="md">
-            <div className="py-6">
-              <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-8 animate-fade-in-up">
-                Animation Settings
-              </h1>
-              
-              <div className="mb-6 text-gray-600 dark:text-gray-300 animate-fade-in-up animation-delay-100">
-                <p>Customize the animation experience throughout the application. These settings allow you to enable or disable specific animation types and control their speed.</p>
-                <p className="mt-2">For accessibility needs, you can completely disable animations or adjust them to your preferences.</p>
-              </div>
-              
-              <AnimationSettings />
-              
-              <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-700 animate-fade-in-up animation-delay-300">
-                <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Animation Preview</h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Preview Cards with Different Animations */}
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md animate-fade-in">
-                    <h3 className="font-medium mb-2">Fade In</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Simple opacity transition</p>
-                  </div>
+      <PageWrapper>
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold mb-8 text-gray-800 dark:text-white">
+            Animation Settings
+          </h1>
+
+          <AnimatedCard
+            animation="animate-fade-in"
+            delay={100}
+            className="p-6 mb-8"
+          >
+            <AnimatedCard.Title>Animation Preferences</AnimatedCard.Title>
+            <AnimatedCard.Body>
+              <div className="space-y-8">
+                {/* Enable/Disable Animations */}
+                <div>
+                  <h3 className="font-semibold mb-3 text-lg">Enable Animations</h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">
+                    Control whether animations are shown throughout the application.
+                  </p>
                   
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md animate-fade-in-up animation-delay-100">
-                    <h3 className="font-medium mb-2">Fade In Up</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Combines movement with opacity</p>
-                  </div>
-                  
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md animate-scale-in animation-delay-200">
-                    <h3 className="font-medium mb-2">Scale In</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Grows from smaller size</p>
-                  </div>
-                  
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md animate-slide-in-right animation-delay-100">
-                    <h3 className="font-medium mb-2">Slide In Right</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Slides in from the right</p>
-                  </div>
-                  
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md animate-card-reveal animation-delay-200">
-                    <h3 className="font-medium mb-2">Card Reveal</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Specialized card animation</p>
-                  </div>
-                  
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md animate-pulse-custom">
-                    <h3 className="font-medium mb-2">Pulse</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Continuous pulsing effect</p>
-                  </div>
-                </div>
-                
-                <div className="mt-6">
-                  <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                    <h3 className="font-medium mb-3">Hover Effect Demo</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Hover over these buttons to see animations</p>
+                  <div className="flex items-center gap-4">
+                    <AnimatedButton
+                      variant={animationsEnabled ? 'primary' : 'outline'}
+                      onClick={enableAnimations}
+                      className={!animationsEnabled ? 'border-gray-300 text-gray-500' : ''}
+                      disabled={animationsEnabled}
+                    >
+                      Enabled
+                    </AnimatedButton>
                     
-                    <div className="flex flex-wrap gap-3">
-                      <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transform hover:-translate-y-1 transition-all duration-300">
-                        Lift Effect
-                      </button>
-                      
-                      <button className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 hover:shadow-lg transition-all duration-300">
-                        Shadow Effect
-                      </button>
-                      
-                      <button className="px-4 py-2 bg-green-600 text-white rounded hover:scale-110 transition-all duration-300">
-                        Scale Effect
-                      </button>
-                      
-                      <button className="px-4 py-2 bg-amber-600 text-white rounded btn-click-effect">
-                        Ripple Effect
-                      </button>
-                    </div>
+                    <AnimatedButton
+                      variant={!animationsEnabled ? 'primary' : 'outline'}
+                      onClick={disableAnimations}
+                      className={animationsEnabled ? 'border-gray-300 text-gray-500' : ''}
+                      disabled={!animationsEnabled}
+                    >
+                      Disabled
+                    </AnimatedButton>
+                  </div>
+                </div>
+                
+                {/* Animation Speed */}
+                <div>
+                  <h3 className="font-semibold mb-3 text-lg">Animation Speed</h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">
+                    Adjust how quickly animations play. This affects all animations throughout the application.
+                  </p>
+                  
+                  <div className="flex items-center gap-4">
+                    <AnimatedButton
+                      variant={animationSpeed === 'slow' ? 'primary' : 'outline'}
+                      onClick={() => setAnimationSpeed('slow')}
+                      className={animationSpeed !== 'slow' ? 'border-gray-300 text-gray-500' : ''}
+                      disabled={animationSpeed === 'slow' || !animationsEnabled}
+                    >
+                      Slow
+                    </AnimatedButton>
+                    
+                    <AnimatedButton
+                      variant={animationSpeed === 'normal' ? 'primary' : 'outline'}
+                      onClick={() => setAnimationSpeed('normal')}
+                      className={animationSpeed !== 'normal' ? 'border-gray-300 text-gray-500' : ''}
+                      disabled={animationSpeed === 'normal' || !animationsEnabled}
+                    >
+                      Normal
+                    </AnimatedButton>
+                    
+                    <AnimatedButton
+                      variant={animationSpeed === 'fast' ? 'primary' : 'outline'}
+                      onClick={() => setAnimationSpeed('fast')}
+                      className={animationSpeed !== 'fast' ? 'border-gray-300 text-gray-500' : ''}
+                      disabled={animationSpeed === 'fast' || !animationsEnabled}
+                    >
+                      Fast
+                    </AnimatedButton>
+                  </div>
+                </div>
+                
+                {/* Reduced Motion */}
+                <div>
+                  <h3 className="font-semibold mb-3 text-lg">Reduced Motion</h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-4">
+                    For users who prefer minimal animations for accessibility reasons. This setting overrides
+                    your operating system's reduced motion preference.
+                  </p>
+                  
+                  <div className="flex items-center gap-4">
+                    <AnimatedButton
+                      variant={reduceMotionEnabled ? 'primary' : 'outline'}
+                      onClick={enableReducedMotion}
+                      className={!reduceMotionEnabled ? 'border-gray-300 text-gray-500' : ''}
+                      disabled={reduceMotionEnabled || !animationsEnabled}
+                    >
+                      Enable Reduced Motion
+                    </AnimatedButton>
+                    
+                    <AnimatedButton
+                      variant={!reduceMotionEnabled ? 'primary' : 'outline'}
+                      onClick={disableReducedMotion}
+                      className={reduceMotionEnabled ? 'border-gray-300 text-gray-500' : ''}
+                      disabled={!reduceMotionEnabled || !animationsEnabled}
+                    >
+                      Standard Motion
+                    </AnimatedButton>
                   </div>
                 </div>
               </div>
-            </div>
-          </ResponsiveContainer>
-        </PageWrapper>
-      </AnimationProvider>
+            </AnimatedCard.Body>
+          </AnimatedCard>
+          
+          {/* Animation Preview Section */}
+          <AnimatedCard
+            animation="animate-fade-in"
+            delay={200}
+            className="p-6"
+          >
+            <AnimatedCard.Title>Animation Preview</AnimatedCard.Title>
+            <AnimatedCard.Body>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                Preview how animations look with your current settings. Click the button below to see various animation styles.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <AnimationPreviewCard 
+                  title="Fade In"
+                  animation="animate-fade-in"
+                />
+                
+                <AnimationPreviewCard 
+                  title="Fade In Up"
+                  animation="animate-fade-in-up"
+                />
+                
+                <AnimationPreviewCard 
+                  title="Scale In"
+                  animation="animate-scale-in"
+                />
+              </div>
+            </AnimatedCard.Body>
+          </AnimatedCard>
+        </div>
+      </PageWrapper>
     </Layout>
   );
 };
 
-export default AnimationsPage;
+// Animation preview card component
+const AnimationPreviewCard = ({ title, animation }) => {
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const { animationsEnabled } = useAnimationContext();
+  
+  const triggerAnimation = () => {
+    if (!animationsEnabled) return;
+    
+    setIsPlaying(false);
+    setTimeout(() => {
+      setIsPlaying(true);
+    }, 10);
+  };
+  
+  return (
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <h4 className="font-semibold mb-3">{title}</h4>
+      
+      <div className="h-32 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-md mb-4">
+        {isPlaying && (
+          <div className={animation}>
+            <div className="p-4 bg-blue-500 text-white rounded-md">
+              Animated Element
+            </div>
+          </div>
+        )}
+        
+        {!isPlaying && (
+          <div className="text-gray-400 dark:text-gray-500">
+            Click button to play
+          </div>
+        )}
+      </div>
+      
+      <AnimatedButton
+        onClick={triggerAnimation}
+        disabled={!animationsEnabled}
+        size="sm"
+        variant={animationsEnabled ? "primary" : "outline"}
+        className="w-full"
+      >
+        Play Animation
+      </AnimatedButton>
+    </div>
+  );
+};
+
+export default AnimationSettingsPage;

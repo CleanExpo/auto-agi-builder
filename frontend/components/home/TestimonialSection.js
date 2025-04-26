@@ -1,195 +1,136 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import Image from 'next/image';
 
 /**
- * Testimonial section component for displaying customer testimonials.
- * Features a carousel of testimonials with user photos and company logos.
+ * TestimonialSection component
+ * Displays testimonials from users/customers in a slider format
  */
-const TestimonialSection = () => {
+export default function TestimonialSection() {
+  // State to keep track of the current testimonial being displayed
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+
   // Sample testimonial data
   const testimonials = [
     {
-      id: 1,
-      quote: "Auto AGI Builder cut our development time in half. We went from idea to functional prototype in just a week, which would've taken us a month with our old process.",
+      quote: "Auto AGI Builder reduced our development time by 60%. What used to take weeks now takes days.",
       author: "Sarah Johnson",
-      role: "CTO",
-      company: "TechNova Solutions",
-      imageUrl: "/images/testimonials/user-1.jpg",
-      logoUrl: "/images/testimonials/company-1.svg",
-      rating: 5
+      position: "CTO, TechSolutions Inc.",
+      company: "techsolutions",
+      avatar: "/avatars/sarah.jpg" // This would be the path to the actual image in a real implementation
     },
     {
-      id: 2,
-      quote: "The ROI calculator alone made this tool worth it. We could clearly see the business impact of our development decisions, which made it easier to prioritize features.",
-      author: "David Chen",
-      role: "Product Manager",
-      company: "GrowthMetrics",
-      imageUrl: "/images/testimonials/user-2.jpg",
-      logoUrl: "/images/testimonials/company-2.svg",
-      rating: 5
+      quote: "The prototype generation feature is incredible. We were able to iterate through designs faster than ever before.",
+      author: "Michael Chen",
+      position: "Lead Developer, InnovateSoft",
+      company: "innovatesoft",
+      avatar: "/avatars/michael.jpg"
     },
     {
-      id: 3,
-      quote: "Our clients are blown away when we show them the device preview feature. Being able to see their app on different screens early in the process has improved our client satisfaction.",
-      author: "Michael Torres",
-      role: "Lead Developer",
-      company: "FrontEdge Studios",
-      imageUrl: "/images/testimonials/user-3.jpg",
-      logoUrl: "/images/testimonials/company-3.svg",
-      rating: 4
-    }
+      quote: "The ROI calculator accurately predicted our cost savings. We've seen a 40% reduction in development costs.",
+      author: "Jessica Rodriguez",
+      position: "Product Manager, Enterprise Systems",
+      company: "enterprise",
+      avatar: "/avatars/jessica.jpg"
+    },
+    {
+      quote: "Our clients are impressed with how quickly we deliver prototypes. It's revolutionized our consulting business.",
+      author: "David Wilson",
+      position: "Founder, Wilson Development",
+      company: "wilson",
+      avatar: "/avatars/david.jpg"
+    },
   ];
 
-  // For a simple implementation, we'll just show all testimonials side by side
-  // In a real implementation, you'd want to add carousel functionality with proper controls
+  // Go to the next testimonial
+  const nextTestimonial = () => {
+    setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
+  };
+
+  // Go to the previous testimonial
+  const prevTestimonial = () => {
+    setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length);
+  };
+
+  // Select a specific testimonial by index
+  const selectTestimonial = (index) => {
+    setCurrentTestimonial(index);
+  };
 
   return (
-    <section className="py-20 bg-gray-50 dark:bg-gray-800">
+    <section className="testimonial-section py-16 bg-gray-50">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-800 dark:text-white mb-16">
-          Trusted by Teams Everywhere
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {testimonials.map((testimonial) => (
-            <TestimonialCard key={testimonial.id} testimonial={testimonial} />
-          ))}
+        <h2 className="text-3xl font-bold text-center mb-12">What Our Users Say</h2>
+        
+        <div className="max-w-4xl mx-auto">
+          {/* Testimonial Card */}
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="flex flex-col md:flex-row items-center">
+              {/* Avatar Placeholder (would be an actual image in production) */}
+              <div className="w-20 h-20 rounded-full bg-gray-200 flex-shrink-0 mb-4 md:mb-0 md:mr-6">
+                <div className="w-full h-full rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600">
+                  {testimonials[currentTestimonial].author.charAt(0)}
+                </div>
+              </div>
+              
+              <div className="flex-grow">
+                <p className="text-lg italic mb-4">"{testimonials[currentTestimonial].quote}"</p>
+                <div>
+                  <h4 className="font-bold">{testimonials[currentTestimonial].author}</h4>
+                  <p className="text-gray-600">{testimonials[currentTestimonial].position}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Navigation Controls */}
+          <div className="flex justify-between items-center mt-8">
+            <button 
+              onClick={prevTestimonial} 
+              className="p-2 rounded-full bg-white shadow hover:shadow-md"
+              aria-label="Previous testimonial"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            
+            <div className="flex space-x-2">
+              {testimonials.map((_, index) => (
+                <button 
+                  key={index}
+                  onClick={() => selectTestimonial(index)}
+                  className={`w-3 h-3 rounded-full ${currentTestimonial === index ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                  aria-label={`Go to testimonial ${index + 1}`}
+                />
+              ))}
+            </div>
+            
+            <button 
+              onClick={nextTestimonial} 
+              className="p-2 rounded-full bg-white shadow hover:shadow-md"
+              aria-label="Next testimonial"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
         </div>
-
-        {/* Company logos */}
+        
+        {/* Logos Section */}
         <div className="mt-16">
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-8">
-            Trusted by innovative teams at:
-          </p>
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-80">
-            <div className="w-24 md:w-32 h-12 relative grayscale hover:grayscale-0 transition-all duration-300">
-              <Image 
-                src="/images/logos/amazon.svg" 
-                alt="Amazon" 
-                layout="fill" 
-                objectFit="contain"
-              />
-            </div>
-            <div className="w-24 md:w-32 h-12 relative grayscale hover:grayscale-0 transition-all duration-300">
-              <Image 
-                src="/images/logos/netflix.svg" 
-                alt="Netflix" 
-                layout="fill" 
-                objectFit="contain"
-              />
-            </div>
-            <div className="w-24 md:w-32 h-12 relative grayscale hover:grayscale-0 transition-all duration-300">
-              <Image 
-                src="/images/logos/adobe.svg" 
-                alt="Adobe" 
-                layout="fill" 
-                objectFit="contain"
-              />
-            </div>
-            <div className="w-24 md:w-32 h-12 relative grayscale hover:grayscale-0 transition-all duration-300">
-              <Image 
-                src="/images/logos/slack.svg" 
-                alt="Slack" 
-                layout="fill" 
-                objectFit="contain"
-              />
-            </div>
-            <div className="w-24 md:w-32 h-12 relative grayscale hover:grayscale-0 transition-all duration-300">
-              <Image 
-                src="/images/logos/shopify.svg" 
-                alt="Shopify" 
-                layout="fill" 
-                objectFit="contain"
-              />
-            </div>
+          <p className="text-center text-gray-600 mb-8">Trusted by innovative companies</p>
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
+            {/* This would be replaced with actual company logos in production */}
+            {['Company A', 'Company B', 'Company C', 'Company D', 'Company E'].map((company, index) => (
+              <div key={index} className="flex items-center justify-center h-12 w-24 bg-gray-100 rounded">
+                <span className="text-gray-500 text-sm">{company}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     </section>
   );
-};
-
-/**
- * Individual testimonial card component.
- * 
- * @param {Object} testimonial - The testimonial data object
- */
-const TestimonialCard = ({ testimonial }) => {
-  return (
-    <div className="bg-white dark:bg-gray-700 rounded-xl shadow-lg p-8 h-full flex flex-col transition-transform hover:-translate-y-1 hover:shadow-xl">
-      {/* Star Rating */}
-      <div className="flex mb-4">
-        {[...Array(5)].map((_, i) => (
-          <StarIcon 
-            key={i} 
-            filled={i < testimonial.rating}
-          />
-        ))}
-      </div>
-      
-      {/* Quote */}
-      <blockquote className="text-gray-700 dark:text-gray-300 mb-6 flex-grow">
-        "{testimonial.quote}"
-      </blockquote>
-      
-      {/* Author Info */}
-      <div className="flex items-center">
-        <div className="w-12 h-12 rounded-full overflow-hidden mr-4">
-          <Image 
-            src={testimonial.imageUrl} 
-            alt={testimonial.author}
-            width={48}
-            height={48}
-            className="object-cover"
-          />
-        </div>
-        <div>
-          <div className="font-medium text-gray-900 dark:text-white">
-            {testimonial.author}
-          </div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {testimonial.role}, {testimonial.company}
-          </div>
-        </div>
-        <div className="ml-auto">
-          <div className="w-16 h-8 relative">
-            <Image 
-              src={testimonial.logoUrl} 
-              alt={testimonial.company}
-              layout="fill" 
-              objectFit="contain"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/**
- * Star icon component for ratings.
- * 
- * @param {boolean} filled - Whether the star should be filled or outlined
- */
-const StarIcon = ({ filled }) => {
-  return (
-    <svg
-      className={`w-5 h-5 ${
-        filled ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'
-      }`}
-      fill={filled ? 'currentColor' : 'none'}
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-      ></path>
-    </svg>
-  );
-};
-
-export default TestimonialSection;
+}

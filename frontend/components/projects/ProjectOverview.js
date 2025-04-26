@@ -14,7 +14,9 @@ import {
   ListItemText,
   Avatar,
   Chip,
-  Stack
+  Stack,
+  Tabs,
+  Tab
 } from '@mui/material';
 import { 
   Assignment as AssignmentIcon,
@@ -28,7 +30,9 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { useProject } from '../../contexts/ProjectContext';
+import { useRoadmap } from '../../contexts/RoadmapContext';
 import LoadingIndicator from '../common/LoadingIndicator';
+import RoadmapVisualizer from '../roadmap/RoadmapVisualizer';
 
 const StatCard = ({ title, value, icon, color, secondary = null }) => {
   return (
@@ -60,6 +64,11 @@ const StatCard = ({ title, value, icon, color, secondary = null }) => {
 const ProjectOverview = ({ project }) => {
   const { getProjectStats, loading } = useProject();
   const [stats, setStats] = useState(null);
+  const [activeTab, setActiveTab] = useState(0);
+  
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
   
   useEffect(() => {
     const loadStats = async () => {
@@ -239,37 +248,66 @@ const ProjectOverview = ({ project }) => {
       </Grid>
       
       {/* Recent Activity - This would typically include a list of recent actions */}
-      <Typography variant="h6" gutterBottom>
-        Recent Activity
-      </Typography>
-      <Paper sx={{ p: 3 }}>
-        {stats?.recent_activity?.length > 0 ? (
-          <List>
-            {stats.recent_activity.map((activity, index) => (
-              <ListItem key={index} divider={index < stats.recent_activity.length - 1}>
-                <ListItemIcon>
-                  {activity.type === 'requirement_added' && <AssignmentIcon color="primary" />}
-                  {activity.type === 'document_uploaded' && <DocumentIcon color="info" />}
-                  {activity.type === 'prototype_generated' && <PrototypeIcon color="success" />}
-                  {activity.type === 'collaborator_added' && <GroupIcon color="warning" />}
-                </ListItemIcon>
-                <ListItemText 
-                  primary={activity.description}
-                  secondary={activity.timestamp ? format(new Date(activity.timestamp), 'MMM d, yyyy, HH:mm') : ''}
-                />
-              </ListItem>
-            ))}
-          </List>
-        ) : (
-          <Box sx={{ textAlign: 'center', py: 3 }}>
-            <Typography variant="body1" color="textSecondary">
-              No recent activity to display
-            </Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-              Start working on your project to see activity here
-            </Typography>
-          </Box>
-        )}
+      {/* Tabbed Content */}
+      <Paper sx={{ mb: 4 }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tabs value={activeTab} onChange={handleTabChange} aria-label="project tabs">
+            <Tab label="Activity" id="tab-0" aria-controls="tabpanel-0" />
+            <Tab label="Roadmap" id="tab-1" aria-controls="tabpanel-1" />
+          </Tabs>
+        </Box>
+        
+        {/* Activity Tab */}
+        <Box
+          role="tabpanel"
+          hidden={activeTab !== 0}
+          id="tabpanel-0"
+          aria-labelledby="tab-0"
+          sx={{ p: 3 }}
+        >
+          <Typography variant="h6" gutterBottom>
+            Recent Activity
+          </Typography>
+          {stats?.recent_activity?.length > 0 ? (
+            <List>
+              {stats.recent_activity.map((activity, index) => (
+                <ListItem key={index} divider={index < stats.recent_activity.length - 1}>
+                  <ListItemIcon>
+                    {activity.type === 'requirement_added' && <AssignmentIcon color="primary" />}
+                    {activity.type === 'document_uploaded' && <DocumentIcon color="info" />}
+                    {activity.type === 'prototype_generated' && <PrototypeIcon color="success" />}
+                    {activity.type === 'collaborator_added' && <GroupIcon color="warning" />}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={activity.description}
+                    secondary={activity.timestamp ? format(new Date(activity.timestamp), 'MMM d, yyyy, HH:mm') : ''}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 3 }}>
+              <Typography variant="body1" color="textSecondary">
+                No recent activity to display
+              </Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                Start working on your project to see activity here
+              </Typography>
+            </Box>
+          )}
+        </Box>
+        
+        {/* Roadmap Tab */}
+        <Box
+          role="tabpanel"
+          hidden={activeTab !== 1}
+          id="tabpanel-1"
+          aria-labelledby="tab-1"
+        >
+          {project?.id && (
+            <RoadmapVisualizer projectId={project.id} />
+          )}
+        </Box>
       </Paper>
     </Box>
   );

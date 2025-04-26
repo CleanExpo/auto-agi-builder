@@ -1,58 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog } from '@headlessui/react';
-import { useProject, useUI } from '../../../contexts';
+import { useRouter } from 'next/router';
+import { useProject } from '../../../contexts/ProjectContext';
+import { useUI } from '../../../contexts/UIContext';
 
 /**
- * Project form modal component
- * Used to create or edit a project
+ * ProjectFormModal component
+ * Modal for creating or editing projects
+ * Opens when user clicks "New Project" button
  */
-const ProjectFormModal = ({ data, onClose }) => {
+export default function ProjectFormModal({ project = null, onClose }) {
+  const router = useRouter();
   const { createProject, updateProject } = useProject();
-  const { toast } = useUI();
-  
-  // Type of form: 'create' or 'edit'
-  const { type = 'create', project = null } = data || {};
-  const isEdit = type === 'edit';
+  const { closeModal } = useUI();
   
   // Form state
-  const [formState, setFormState] = useState({
+  const [formData, setFormData] = useState({
     name: '',
     description: '',
-    clientName: '',
-    clientEmail: '',
-    expectedDeliveryDate: '',
-    budget: '',
+    type: 'web-app',
+    status: 'Planning',
+    teamMembers: [],
+    isPublic: false,
   });
   
-  const [loading, setLoading] = useState(false);
+  // Error state
   const [errors, setErrors] = useState({});
-  
-  // Initialize form with project data if editing
+  // Loading state
+  const [loading, setLoading] = useState(false);
+
+  // If project is provided, populate form with project data (edit mode)
   useEffect(() => {
-    if (isEdit && project) {
-      setFormState({
+    if (project) {
+      setFormData({
         name: project.name || '',
         description: project.description || '',
-        clientName: project.clientName || '',
-        clientEmail: project.clientEmail || '',
-        expectedDeliveryDate: project.expectedDeliveryDate 
-          ? new Date(project.expectedDeliveryDate).toISOString().slice(0, 10)
-          : '',
-        budget: project.budget?.toString() || '',
+        type: project.type || 'web-app',
+        status: project.status || 'Planning',
+        teamMembers: project.teamMembers || [],
+        isPublic: project.isPublic || false,
       });
     }
-  }, [isEdit, project]);
-  
-  // Handle input change
+  }, [project]);
+
+  // Handle input changes
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     
-    setFormState((prev) => ({
+    // Handle checkbox inputs
+    if (type === 'checkbox') {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: checked,
+      }));
+      return;
+    }
+    
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
     
-    // Clear error when field is edited
+    // Clear error for this field if it exists
     if (errors[name]) {
       setErrors((prev) => ({
         ...prev,
@@ -60,32 +68,38 @@ const ProjectFormModal = ({ data, onClose }) => {
       }));
     }
   };
-  
+
   // Validate form
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formState.name.trim()) {
+    // Name validation
+    if (!formData.name.trim()) {
       newErrors.name = 'Project name is required';
+    } else if (formData.name.length < 3) {
+      newErrors.name = 'Project name must be at least 3 characters';
     }
     
-    // Optional validation for other fields
-    if (formState.clientEmail && !/^\S+@\S+\.\S+$/.test(formState.clientEmail)) {
-      newErrors.clientEmail = 'Invalid email address';
+    // Description validation (optional but if provided must be at least 10 chars)
+    if (formData.description && formData.description.length < 10) {
+      newErrors.description = 'Description must be at least 10 characters';
     }
     
-    if (formState.budget && isNaN(Number(formState.budget))) {
-      newErrors.budget = 'Budget must be a number';
+    // Type validation
+    if (!formData.type) {
+      newErrors.type = 'Please select a project type';
     }
     
+    // Set errors and return validation result
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validate form
     if (!validateForm()) {
       return;
     }
@@ -93,209 +107,205 @@ const ProjectFormModal = ({ data, onClose }) => {
     setLoading(true);
     
     try {
-      // Prepare data for submission
-      const projectData = {
-        ...formState,
-        // Convert string to number for budget
-        budget: formState.budget ? Number(formState.budget) : undefined,
-      };
-      
       let result;
       
-      if (isEdit) {
+      // Create or update project
+      if (project) {
         // Update existing project
-        result = await updateProject(project.id, projectData);
-        
-        if (result.success) {
-          toast.success('Project updated successfully');
-          onClose();
-        } else {
-          setErrors({ form: result.error || 'Failed to update project' });
-        }
+        result = await updateProject(project.id, formData);
       } else {
         // Create new project
-        result = await createProject(projectData);
-        
-        if (result.success) {
-          toast.success('Project created successfully');
-          onClose();
-        } else {
-          setErrors({ form: result.error || 'Failed to create project' });
-        }
+        result = await createProject(formData);
       }
+      
+      // Close modal
+      closeModal();
+      
+      // Redirect to the new/updated project
+      router.push(`/projects/${result.id}`);
     } catch (error) {
-      console.error('Project form error:', error);
-      setErrors({ form: 'An unexpected error occurred' });
+      console.error('Error creating/updating project:', error);
+      setErrors((prev) => ({
+        ...prev,
+        form: error.message || 'An error occurred. Please try again.',
+      }));
     } finally {
       setLoading(false);
     }
   };
-  
+
+  // Handle modal close
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      closeModal();
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="px-4 pt-5 pb-4 sm:p-6">
-      <div>
-        <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-          {isEdit ? 'Edit Project' : 'Create New Project'}
-        </Dialog.Title>
-        
-        {/* Form error message */}
+    <div className="project-form-modal">
+      <div className="bg-white p-6 rounded-lg w-full max-w-md">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold">
+            {project ? 'Edit Project' : 'Create New Project'}
+          </h2>
+          <button
+            onClick={handleClose}
+            className="text-gray-500 hover:text-gray-700"
+            aria-label="Close"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Error message */}
         {errors.form && (
-          <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm rounded-md">
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md mb-4">
             {errors.form}
           </div>
         )}
-        
-        <div className="mt-4 space-y-4">
+
+        <form onSubmit={handleSubmit}>
           {/* Project Name */}
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Project Name <span className="text-red-500">*</span>
+          <div className="mb-4">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              Project Name*
             </label>
             <input
               type="text"
-              name="name"
               id="name"
-              value={formState.name}
+              name="name"
+              value={formData.name}
               onChange={handleChange}
-              className={`mt-1 block w-full shadow-sm sm:text-sm rounded-md ${
-                errors.name 
-                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                  : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500'
-              } dark:bg-gray-700 dark:text-white`}
+              placeholder="Enter project name"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                errors.name ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+              }`}
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name}</p>
+              <p className="mt-1 text-sm text-red-600">{errors.name}</p>
             )}
           </div>
-          
-          {/* Description */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+
+          {/* Project Description */}
+          <div className="mb-4">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
               Description
             </label>
             <textarea
-              name="description"
               id="description"
-              rows="3"
-              value={formState.description}
+              name="description"
+              value={formData.description}
               onChange={handleChange}
-              className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              rows="3"
+              placeholder="Describe your project"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                errors.description ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+              }`}
             />
+            {errors.description && (
+              <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+            )}
           </div>
-          
-          {/* Client Information */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Client Name
-              </label>
-              <input
-                type="text"
-                name="clientName"
-                id="clientName"
-                value={formState.clientName}
-                onChange={handleChange}
-                className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="clientEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Client Email
-              </label>
-              <input
-                type="email"
-                name="clientEmail"
-                id="clientEmail"
-                value={formState.clientEmail}
-                onChange={handleChange}
-                className={`mt-1 block w-full shadow-sm sm:text-sm rounded-md ${
-                  errors.clientEmail 
-                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                    : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500'
-                } dark:bg-gray-700 dark:text-white`}
-              />
-              {errors.clientEmail && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.clientEmail}</p>
-              )}
-            </div>
-          </div>
-          
-          {/* Project Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="expectedDeliveryDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Expected Delivery Date
-              </label>
-              <input
-                type="date"
-                name="expectedDeliveryDate"
-                id="expectedDeliveryDate"
-                value={formState.expectedDeliveryDate}
-                onChange={handleChange}
-                className="mt-1 block w-full shadow-sm sm:text-sm border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="budget" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Budget
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 dark:text-gray-400 sm:text-sm">$</span>
-                </div>
-                <input
-                  type="text"
-                  name="budget"
-                  id="budget"
-                  value={formState.budget}
-                  onChange={handleChange}
-                  className={`pl-7 block w-full shadow-sm sm:text-sm rounded-md ${
-                    errors.budget 
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500'
-                  } dark:bg-gray-700 dark:text-white`}
-                  placeholder="0.00"
-                />
-              </div>
-              {errors.budget && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.budget}</p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Form Actions */}
-      <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:col-start-2 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              {isEdit ? 'Updating...' : 'Creating...'}
-            </>
-          ) : (
-            isEdit ? 'Update Project' : 'Create Project'
-          )}
-        </button>
-        <button
-          type="button"
-          className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:col-start-1 sm:text-sm"
-          onClick={onClose}
-        >
-          Cancel
-        </button>
-      </div>
-    </form>
-  );
-};
 
-export default ProjectFormModal;
+          {/* Project Type */}
+          <div className="mb-4">
+            <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+              Project Type*
+            </label>
+            <select
+              id="type"
+              name="type"
+              value={formData.type}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                errors.type ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'
+              }`}
+            >
+              <option value="web-app">Web Application</option>
+              <option value="mobile-app">Mobile Application</option>
+              <option value="desktop-app">Desktop Application</option>
+              <option value="api">API</option>
+              <option value="cms">Content Management System</option>
+              <option value="e-commerce">E-Commerce</option>
+              <option value="other">Other</option>
+            </select>
+            {errors.type && (
+              <p className="mt-1 text-sm text-red-600">{errors.type}</p>
+            )}
+          </div>
+
+          {/* Project Status */}
+          <div className="mb-4">
+            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              id="status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="Planning">Planning</option>
+              <option value="In Progress">In Progress</option>
+              <option value="On Hold">On Hold</option>
+              <option value="Completed">Completed</option>
+              <option value="Canceled">Canceled</option>
+            </select>
+          </div>
+
+          {/* Project Visibility */}
+          <div className="mb-6">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isPublic"
+                name="isPublic"
+                checked={formData.isPublic}
+                onChange={handleChange}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              />
+              <label htmlFor="isPublic" className="ml-2 block text-sm text-gray-700">
+                Make project public
+              </label>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Public projects can be viewed by anyone with the link.
+            </p>
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : project ? 'Save Changes' : 'Create Project'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

@@ -1,74 +1,62 @@
-import { useState, useEffect, useRef } from 'react';
-import { useAnimation } from '../contexts/AnimationContext';
+import { useRef, useState, useEffect } from 'react';
 
 /**
- * Custom hook for detecting when elements enter the viewport
- * Allows triggering animations when elements become visible
- * Respects user motion preferences from AnimationContext
+ * Custom hook to detect element visibility using Intersection Observer API
  * 
- * @param {Object} options Configuration options
- * @param {String} options.animationType Type of animation to consider from animation settings
- * @param {String} options.rootMargin Distance from viewport edge to trigger (default: '0px')
- * @param {Number} options.threshold Visibility threshold (0-1) to trigger (default: 0.1)
- * @param {Boolean} options.triggerOnce Only trigger once (default: true)
- * @returns {Object} Intersection state and ref to attach
+ * @param {Object} options - Hook options
+ * @param {number} options.threshold - Visibility threshold (0-1, default: 0.1)
+ * @param {string} options.rootMargin - Root margin (default: '0px')
+ * @param {Element} options.root - The element used as viewport (default: browser viewport)
+ * @param {boolean} options.freezeOnceVisible - If true, isVisible remains true once triggered (default: false)
+ * @returns {Object} Observer state and ref
  */
 const useIntersectionObserver = ({
-  animationType = 'elementAnimations',
-  rootMargin = '0px',
   threshold = 0.1,
-  triggerOnce = true
+  rootMargin = '0px',
+  root = null,
+  freezeOnceVisible = false
 } = {}) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const [hasTriggered, setHasTriggered] = useState(false);
   const ref = useRef(null);
-  const { shouldAnimate } = useAnimation();
-  
-  // Check if this animation type should be enabled
-  const isAnimationEnabled = shouldAnimate(animationType);
+  const [isIntersecting, setIsIntersecting] = useState(false);
+  const [hasIntersected, setHasIntersected] = useState(false);
   
   useEffect(() => {
-    // If animations are disabled or we've already triggered (and triggerOnce is true),
-    // immediately mark as visible and return
-    if (!isAnimationEnabled || (triggerOnce && hasTriggered)) {
-      setIsVisible(true);
-      return;
-    }
+    const element = ref.current;
+    if (!element) return;
     
-    const currentRef = ref.current;
-    if (!currentRef) return;
+    // Avoid unnecessary observer setup if already frozen
+    if (freezeOnceVisible && hasIntersected) return;
     
     const observer = new IntersectionObserver(
-      entries => {
-        // Check if the target element is intersecting
-        const [entry] = entries;
+      ([entry]) => {
+        const isElementIntersecting = entry.isIntersecting;
         
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          setHasTriggered(true);
-          
-          // Unobserve if we only need to trigger once
-          if (triggerOnce) {
-            observer.unobserve(currentRef);
-          }
-        } else if (!triggerOnce) {
-          // If we're not triggering once, toggle visibility
-          setIsVisible(false);
+        // Update intersection state
+        setIsIntersecting(isElementIntersecting);
+        
+        // If element is intersecting and we want to freeze visibility
+        if (isElementIntersecting && freezeOnceVisible) {
+          setHasIntersected(true);
+          observer.disconnect();
         }
       },
-      { rootMargin, threshold }
+      { threshold, rootMargin, root }
     );
     
-    // Start observing the target element
-    observer.observe(currentRef);
+    observer.observe(element);
     
-    // Clean up
+    // Cleanup function
     return () => {
-      if (currentRef) observer.unobserve(currentRef);
+      if (element) {
+        observer.unobserve(element);
+      }
     };
-  }, [rootMargin, threshold, triggerOnce, hasTriggered, isAnimationEnabled, animationType]);
+  }, [threshold, rootMargin, root, freezeOnceVisible, hasIntersected]);
   
-  return { ref, isVisible };
+  // The isVisible value respects the freezeOnceVisible setting
+  const isVisible = freezeOnceVisible ? isIntersecting || hasIntersected : isIntersecting;
+  
+  return { ref, isVisible, hasIntersected };
 };
 
 export default useIntersectionObserver;

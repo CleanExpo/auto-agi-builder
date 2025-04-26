@@ -62,6 +62,13 @@ class Requirement(Base):
     # Document relationship - if any
     source_document = relationship("Document", back_populates="extracted_requirements")
     
+    # Milestone relationship
+    milestones = relationship(
+        "Milestone",
+        secondary="milestone_requirements",
+        back_populates="requirements"
+    )
+    
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             setattr(self, key, value)

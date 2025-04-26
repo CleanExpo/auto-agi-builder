@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import HeroSection from '../components/home/HeroSection';
 import FeatureSection from '../components/home/FeatureSection';
 import CallToAction from '../components/home/CallToAction';
+import QuickStartForm from '../components/projects/QuickStartForm';
 
 // Import contexts and utilities
 import { useAuth } from '../contexts/AuthContext'; // This would be created later
@@ -30,25 +31,21 @@ const Home = () => {
       return;
     }
 
-    openModal({
-      title: 'Create New Project',
-      content: (
-        <div className="p-6">
-          <p className="text-lg text-center mb-6">
-            This would show the QuickStartForm component once implemented.
-          </p>
-          <div className="flex justify-end">
-            <button 
-              className="bg-blue-600 text-white px-4 py-2 rounded"
-              onClick={() => closeModal()}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      ),
-      size: 'lg'
-    });
+      openModal({
+        title: 'Start Your AI-Powered Project',
+        content: (
+          <QuickStartForm 
+            onSubmit={handleCreateProject}
+            isLoading={isCreating}
+            requiresAuth={!isAuthenticated}
+            onRequiresAuth={() => {
+              closeModal();
+              router.push('/auth/login?redirect=/projects/new');
+            }}
+          />
+        ),
+        size: 'xl'
+      });
   };
 
   // This would be replaced with actual API call when the backend is ready

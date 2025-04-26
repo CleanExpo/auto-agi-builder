@@ -1,153 +1,372 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 /**
- * Requirement Filter Bar Component
- * 
- * Provides filtering, searching, and sorting controls for requirements
+ * RequirementFilterBar Component
+ * Provides filtering and search functionality for requirements
  */
-const RequirementFilterBar = ({ filters, onFilterChange, totalCount, filteredCount }) => {
-  // Handle status filter change
-  const handleStatusChange = (e) => {
-    onFilterChange({ status: e.target.value });
-  };
+export default function RequirementFilterBar({ 
+  onFilterChange,
+  totalRequirements = 0,
+  defaultFilters = {}
+}) {
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState(defaultFilters.searchQuery || '');
+  const [selectedStatuses, setSelectedStatuses] = useState(defaultFilters.statuses || []);
+  const [selectedTypes, setSelectedTypes] = useState(defaultFilters.types || []);
+  const [selectedPriorities, setSelectedPriorities] = useState(defaultFilters.priorities || []);
+  const [selectedTags, setSelectedTags] = useState(defaultFilters.tags || []);
+  const [tagInput, setTagInput] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [sortBy, setSortBy] = useState(defaultFilters.sortBy || 'updated');
+  const [sortOrder, setSortOrder] = useState(defaultFilters.sortOrder || 'desc');
 
-  // Handle priority filter change
-  const handlePriorityChange = (e) => {
-    onFilterChange({ priority: e.target.value });
-  };
+  // Status options
+  const statusOptions = [
+    { value: 'draft', label: 'Draft', color: 'bg-gray-100' },
+    { value: 'review', label: 'In Review', color: 'bg-blue-100' },
+    { value: 'approved', label: 'Approved', color: 'bg-green-100' },
+    { value: 'in-progress', label: 'In Progress', color: 'bg-indigo-100' },
+    { value: 'testing', label: 'Testing', color: 'bg-yellow-100' },
+    { value: 'completed', label: 'Completed', color: 'bg-purple-100' },
+    { value: 'rejected', label: 'Rejected', color: 'bg-red-100' },
+  ];
+
+  // Type options
+  const typeOptions = [
+    { value: 'functional', label: 'Functional' },
+    { value: 'non-functional', label: 'Non-Functional' },
+    { value: 'technical', label: 'Technical' },
+    { value: 'feature', label: 'Feature' },
+    { value: 'bug', label: 'Bug Fix' },
+    { value: 'improvement', label: 'Improvement' },
+    { value: 'documentation', label: 'Documentation' },
+    { value: 'other', label: 'Other' },
+  ];
+
+  // Priority options
+  const priorityOptions = [
+    { value: 'critical', label: 'Critical', color: 'bg-red-100' },
+    { value: 'high', label: 'High', color: 'bg-orange-100' },
+    { value: 'medium', label: 'Medium', color: 'bg-yellow-100' },
+    { value: 'low', label: 'Low', color: 'bg-green-100' },
+  ];
+
+  // Sort options
+  const sortOptions = [
+    { value: 'title', label: 'Title' },
+    { value: 'priority', label: 'Priority' },
+    { value: 'status', label: 'Status' },
+    { value: 'created', label: 'Date Created' },
+    { value: 'updated', label: 'Date Updated' },
+    { value: 'storyPoints', label: 'Story Points' },
+  ];
+
+  // Update filters when they change
+  useEffect(() => {
+    const filters = {
+      searchQuery,
+      statuses: selectedStatuses,
+      types: selectedTypes,
+      priorities: selectedPriorities,
+      tags: selectedTags,
+      sortBy,
+      sortOrder
+    };
+    
+    onFilterChange(filters);
+  }, [searchQuery, selectedStatuses, selectedTypes, selectedPriorities, selectedTags, sortBy, sortOrder]);
 
   // Handle search input change
   const handleSearchChange = (e) => {
-    onFilterChange({ search: e.target.value });
+    setSearchQuery(e.target.value);
   };
 
-  // Handle sort field change
-  const handleSortByChange = (e) => {
-    onFilterChange({ sortBy: e.target.value });
+  // Toggle status filter
+  const toggleStatus = (status) => {
+    setSelectedStatuses(prev => 
+      prev.includes(status) 
+        ? prev.filter(s => s !== status) 
+        : [...prev, status]
+    );
   };
 
-  // Handle sort direction toggle
-  const handleSortDirectionToggle = () => {
-    onFilterChange({ sortDirection: filters.sortDirection === 'asc' ? 'desc' : 'asc' });
+  // Toggle type filter
+  const toggleType = (type) => {
+    setSelectedTypes(prev => 
+      prev.includes(type) 
+        ? prev.filter(t => t !== type) 
+        : [...prev, type]
+    );
+  };
+
+  // Toggle priority filter
+  const togglePriority = (priority) => {
+    setSelectedPriorities(prev => 
+      prev.includes(priority) 
+        ? prev.filter(p => p !== priority) 
+        : [...prev, priority]
+    );
+  };
+
+  // Add tag
+  const addTag = () => {
+    if (tagInput.trim() === '') return;
+    
+    if (!selectedTags.includes(tagInput.trim())) {
+      setSelectedTags(prev => [...prev, tagInput.trim()]);
+    }
+    
+    setTagInput('');
+  };
+
+  // Remove tag
+  const removeTag = (tag) => {
+    setSelectedTags(prev => prev.filter(t => t !== tag));
+  };
+
+  // Handle tag key down (add tag on enter)
+  const handleTagKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag();
+    }
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setSelectedStatuses([]);
+    setSelectedTypes([]);
+    setSelectedPriorities([]);
+    setSelectedTags([]);
+    setSortBy('updated');
+    setSortOrder('desc');
+  };
+
+  // Toggle sort order
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  // Count active filters
+  const getActiveFilterCount = () => {
+    return (
+      (searchQuery ? 1 : 0) +
+      selectedStatuses.length +
+      selectedTypes.length +
+      selectedPriorities.length +
+      selectedTags.length
+    );
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4">
-      {/* Filter section */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Search */}
-        <div className="md:col-span-2">
-          <div className="relative rounded-md shadow-sm">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg 
-                className="h-5 w-5 text-gray-400" 
-                xmlns="http://www.w3.org/2000/svg" 
-                viewBox="0 0 20 20" 
-                fill="currentColor" 
-                aria-hidden="true"
-              >
-                <path 
-                  fillRule="evenodd" 
-                  d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" 
-                  clipRule="evenodd" 
-                />
-              </svg>
-            </div>
+    <div className="requirements-filter bg-white border border-gray-200 rounded-lg p-4 mb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
+        <div className="mb-3 md:mb-0">
+          <h2 className="text-lg font-semibold text-gray-800">
+            Requirements
+            <span className="ml-1 text-sm font-normal text-gray-500">({totalRequirements})</span>
+          </h2>
+        </div>
+        
+        <div className="flex flex-col md:flex-row md:items-center gap-2">
+          {/* Search Input */}
+          <div className="relative">
             <input
               type="text"
-              name="search"
-              id="search"
-              className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md"
-              placeholder="Search requirements..."
-              value={filters.search}
+              placeholder="Search requirements"
+              value={searchQuery}
               onChange={handleSearchChange}
+              className="w-full md:w-64 pl-9 pr-3 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
+            <svg
+              className="absolute left-3 top-2.5 h-4 w-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
-        </div>
-
-        {/* Status filter */}
-        <div>
-          <select
-            id="status-filter"
-            name="status-filter"
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-            value={filters.status}
-            onChange={handleStatusChange}
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="inProgress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="rejected">Rejected</option>
-          </select>
-        </div>
-
-        {/* Priority filter */}
-        <div>
-          <select
-            id="priority-filter"
-            name="priority-filter"
-            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-            value={filters.priority}
-            onChange={handlePriorityChange}
-          >
-            <option value="all">All Priorities</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="critical">Critical</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Sort and count section */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-        {/* Count information */}
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          {filteredCount !== undefined && (
-            <>
-              Showing <span className="font-medium">{filteredCount}</span> of{' '}
-              <span className="font-medium">{totalCount}</span> requirements
-            </>
-          )}
-        </div>
-
-        {/* Sort controls */}
-        <div className="flex items-center space-x-2 mt-2 sm:mt-0">
-          <label htmlFor="sort-by" className="text-sm text-gray-500 dark:text-gray-400">
-            Sort by:
-          </label>
-          <select
-            id="sort-by"
-            name="sort-by"
-            className="block pl-3 pr-10 py-1.5 text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 rounded-md"
-            value={filters.sortBy}
-            onChange={handleSortByChange}
-          >
-            <option value="priority">Priority</option>
-            <option value="createdAt">Date Created</option>
-            <option value="title">Title</option>
-          </select>
+          
+          {/* Sort dropdown */}
+          <div className="flex items-center">
+            <label className="text-sm text-gray-600 mr-1 whitespace-nowrap">Sort by:</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="mr-1 py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+            >
+              {sortOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+            
+            {/* Sort Order Toggle */}
+            <button
+              onClick={toggleSortOrder}
+              className="p-2 text-gray-500 hover:text-indigo-600 focus:outline-none"
+              aria-label={sortOrder === 'asc' ? 'Sort ascending' : 'Sort descending'}
+              title={sortOrder === 'asc' ? 'Sort ascending' : 'Sort descending'}
+            >
+              {sortOrder === 'asc' ? (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
+                </svg>
+              )}
+            </button>
+          </div>
+          
+          {/* Advanced Filters Toggle */}
           <button
-            type="button"
-            className="p-1.5 rounded-md text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            onClick={handleSortDirectionToggle}
-            title={filters.sortDirection === 'asc' ? 'Sort Ascending' : 'Sort Descending'}
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className="flex items-center py-2 px-3 border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            {filters.sortDirection === 'asc' ? (
-              <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-              </svg>
-            ) : (
-              <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M14.707 12.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
+            <svg className="h-4 w-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span>Filters</span>
+            {getActiveFilterCount() > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center w-4 h-4 text-xs font-semibold text-white bg-indigo-500 rounded-full">
+                {getActiveFilterCount()}
+              </span>
             )}
           </button>
         </div>
       </div>
+      
+      {/* Advanced Filters */}
+      {showAdvancedFilters && (
+        <div className="mt-4 p-4 border-t border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Status Filters */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Status</h3>
+              <div className="space-y-2">
+                {statusOptions.map(status => (
+                  <label key={status.value} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedStatuses.includes(status.value)}
+                      onChange={() => toggleStatus(status.value)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <span 
+                      className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${status.color} text-gray-800`}
+                    >
+                      {status.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            
+            {/* Type Filters */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Type</h3>
+              <div className="space-y-2">
+                {typeOptions.map(type => (
+                  <label key={type.value} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedTypes.includes(type.value)}
+                      onChange={() => toggleType(type.value)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">
+                      {type.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            
+            {/* Priority Filters */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Priority</h3>
+              <div className="space-y-2">
+                {priorityOptions.map(priority => (
+                  <label key={priority.value} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedPriorities.includes(priority.value)}
+                      onChange={() => togglePriority(priority.value)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <span 
+                      className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${priority.color} text-gray-800`}
+                    >
+                      {priority.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            
+            {/* Tags Filter */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Tags</h3>
+              <div className="flex items-center mb-2">
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  placeholder="Add tag"
+                  className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded-l-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                <button
+                  onClick={addTag}
+                  className="px-3 py-1 bg-gray-100 text-gray-700 border border-l-0 border-gray-300 rounded-r-md hover:bg-gray-200 text-sm"
+                >
+                  Add
+                </button>
+              </div>
+              
+              {/* Selected tags */}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {selectedTags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-indigo-100 text-indigo-800"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="ml-1 text-indigo-600 hover:text-indigo-900 focus:outline-none"
+                    >
+                      <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+                {selectedTags.length === 0 && (
+                  <span className="text-xs text-gray-500 italic">No tags selected</span>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Clear Filters Button */}
+          {getActiveFilterCount() > 0 && (
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={clearAllFilters}
+                className="text-sm text-indigo-600 hover:text-indigo-800 focus:outline-none"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
-};
-
-export default RequirementFilterBar;
+}

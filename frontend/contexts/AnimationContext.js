@@ -1,113 +1,146 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 /**
- * Animation Context
- * Provides global animation settings and preferences throughout the application
- * Includes support for reduced motion and animation customization
+ * Animation Context provides global animation settings and controls
+ * Application-wide animation settings, preferences, and state management
  */
-
-// Create the context
-const AnimationContext = createContext();
+const AnimationContext = createContext({
+  prefersReducedMotion: false,
+  animationsEnabled: true,
+  animationSpeed: 'normal', // 'slow', 'normal', 'fast'
+  enableAnimations: () => {},
+  disableAnimations: () => {},
+  setAnimationSpeed: () => {},
+  toggleAnimations: () => {},
+});
 
 /**
- * Animation Provider component
- * Wraps the application to provide animation context
+ * Animation Provider Component
+ * Provides animation settings and controls to all child components
  * 
- * @param {Object} props
- * @param {ReactNode} props.children Child components
+ * @param {Object} props - Component props
+ * @param {ReactNode} props.children - Child components
  */
 export const AnimationProvider = ({ children }) => {
   // Check if user prefers reduced motion
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   
-  // Animation speed settings
+  // General animation settings
+  const [animationsEnabled, setAnimationsEnabled] = useState(true);
   const [animationSpeed, setAnimationSpeed] = useState('normal');
-  
-  // Enable/disable specific animation types
-  const [animationSettings, setAnimationSettings] = useState({
-    pageTransitions: true,
-    elementAnimations: true,
-    parallaxEffects: false,
-    hoverEffects: true,
-  });
 
-  // Check for reduced motion preference on mount
+  // Check system preferences for reduced motion
   useEffect(() => {
-    // Check for mediaQuery support and user's motion preference
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-      setPrefersReducedMotion(mediaQuery.matches);
-      
-      // Add listener for preference changes
-      const handleChange = (e) => setPrefersReducedMotion(e.matches);
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleChange = () => setPrefersReducedMotion(mediaQuery.matches);
+    
+    // Set initial value
+    setPrefersReducedMotion(mediaQuery.matches);
+    
+    // Add listener for changes
+    if (typeof mediaQuery.addEventListener === 'function') {
       mediaQuery.addEventListener('change', handleChange);
-      
-      // Clean up
       return () => mediaQuery.removeEventListener('change', handleChange);
+    } else {
+      // Older browsers
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
     }
   }, []);
 
-  // Convert animation speed to timing values (in ms)
-  const getAnimationDuration = (baseTime = 300) => {
-    const speedFactors = {
-      'fast': 0.5,
-      'normal': 1,
-      'slow': 1.5,
-    };
-    return baseTime * (speedFactors[animationSpeed] || 1);
-  };
+  // Load user preferences from localStorage
+  useEffect(() => {
+    try {
+      const storedPrefs = localStorage.getItem('animation_preferences');
+      if (storedPrefs) {
+        const prefs = JSON.parse(storedPrefs);
+        setAnimationsEnabled(prefs.enabled ?? true);
+        setAnimationSpeed(prefs.speed ?? 'normal');
+      }
+    } catch (err) {
+      console.error('Failed to load animation preferences:', err);
+    }
+  }, []);
 
-  // Toggle animation settings by key
-  const toggleAnimationSetting = (key) => {
-    setAnimationSettings(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
+  // Save preferences to localStorage
+  const savePreferences = useCallback(() => {
+    try {
+      localStorage.setItem('animation_preferences', JSON.stringify({
+        enabled: animationsEnabled,
+        speed: animationSpeed,
+      }));
+    } catch (err) {
+      console.error('Failed to save animation preferences:', err);
+    }
+  }, [animationsEnabled, animationSpeed]);
 
-  // Toggle all animations on/off
-  const toggleAllAnimations = (enabled) => {
-    setAnimationSettings({
-      pageTransitions: enabled,
-      elementAnimations: enabled,
-      parallaxEffects: enabled,
-      hoverEffects: enabled,
-    });
-  };
+  // Save preferences when they change
+  useEffect(() => {
+    savePreferences();
+  }, [animationsEnabled, animationSpeed, savePreferences]);
 
-  // Check if a particular animation type should be shown
-  const shouldAnimate = (type) => {
-    if (prefersReducedMotion) return false;
-    return animationSettings[type] || false;
-  };
+  // Animation control functions
+  const enableAnimations = useCallback(() => {
+    setAnimationsEnabled(true);
+  }, []);
 
-  // Context value
-  const value = {
+  const disableAnimations = useCallback(() => {
+    setAnimationsEnabled(false);
+  }, []);
+
+  const toggleAnimations = useCallback(() => {
+    setAnimationsEnabled(prev => !prev);
+  }, []);
+
+  const setSpeed = useCallback((speed) => {
+    if (['slow', 'normal', 'fast'].includes(speed)) {
+      setAnimationSpeed(speed);
+    }
+  }, []);
+
+  // Update document classes based on animation settings
+  useEffect(() => {
+    const htmlElement = document.documentElement;
+    
+    // Remove all animation speed classes
+    htmlElement.classList.remove('animations-slow', 'animations-normal', 'animations-fast');
+    
+    // Add appropriate classes
+    if (animationsEnabled && !prefersReducedMotion) {
+      htmlElement.classList.add(`animations-${animationSpeed}`);
+      htmlElement.classList.remove('reduce-motion');
+    } else {
+      htmlElement.classList.add('reduce-motion');
+    }
+  }, [animationsEnabled, animationSpeed, prefersReducedMotion]);
+
+  const contextValue = {
     prefersReducedMotion,
+    animationsEnabled: animationsEnabled && !prefersReducedMotion,
     animationSpeed,
-    animationSettings,
-    setAnimationSpeed,
-    toggleAnimationSetting,
-    toggleAllAnimations,
-    shouldAnimate,
-    getAnimationDuration
+    enableAnimations,
+    disableAnimations,
+    setAnimationSpeed: setSpeed,
+    toggleAnimations,
   };
 
   return (
-    <AnimationContext.Provider value={value}>
+    <AnimationContext.Provider value={contextValue}>
       {children}
     </AnimationContext.Provider>
   );
 };
 
 /**
- * Hook to use animation context
- * @returns {Object} Animation context value
+ * Custom hook to use animation context
+ * @returns {Object} Animation context values and functions
  */
-export const useAnimation = () => {
+export const useAnimationContext = () => {
   const context = useContext(AnimationContext);
   if (context === undefined) {
-    throw new Error('useAnimation must be used within an AnimationProvider');
+    throw new Error('useAnimationContext must be used within an AnimationProvider');
   }
   return context;
 };
+
+export default AnimationContext;

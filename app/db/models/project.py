@@ -45,6 +45,7 @@ class Project(Base):
     requirements = relationship("Requirement", back_populates="project", cascade="all, delete-orphan")
     documents = relationship("Document", back_populates="project", cascade="all, delete-orphan")
     prototypes = relationship("Prototype", back_populates="project", cascade="all, delete-orphan")
+    phases = relationship("Phase", back_populates="project", cascade="all, delete-orphan")
     
     def __init__(self, **kwargs):
         for key, value in kwargs.items():

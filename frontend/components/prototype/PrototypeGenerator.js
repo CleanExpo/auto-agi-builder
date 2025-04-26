@@ -1,1362 +1,579 @@
 import React, { useState, useEffect } from 'react';
-import { useProject, useUI } from '../../contexts';
-import api from '../../lib/api';
+import { useRouter } from 'next/router';
+import { useUI } from '../../contexts/UIContext';
+import { useProject } from '../../contexts/ProjectContext';
 
 /**
- * Prototype Generator Component
- * 
- * Generates code prototypes based on project requirements
+ * PrototypeGenerator Component
+ * Allows users to generate interactive prototypes based on project requirements
  */
-const PrototypeGenerator = ({ requirements, onPrototypeGenerated }) => {
-  const { currentProject } = useProject();
-  const { toast } = useUI();
+export default function PrototypeGenerator({ projectId = null }) {
+  const router = useRouter();
+  const { id } = router.query;
+  const { showNotification, showModal } = useUI();
+  const { getProjectDetails, getRequirements } = useProject();
   
+  // State
+  const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [generatorSettings, setGeneratorSettings] = useState({
-    technology: 'react',
-    architecture: 'spa',
-    language: 'javascript',
-    styling: 'tailwind',
-    includeAuth: true,
-    includeDarkMode: true,
-    includeAPI: true,
-    includeTests: true,
-    complexity: 'medium',
-  });
+  const [project, setProject] = useState(null);
+  const [requirements, setRequirements] = useState([]);
   const [selectedRequirements, setSelectedRequirements] = useState([]);
+  const [prototypes, setPrototypes] = useState([]);
+  const [error, setError] = useState(null);
   
-  // Initialize selected requirements from props
+  // Generation options
+  const [options, setOptions] = useState({
+    platform: 'web',
+    fidelity: 'medium',
+    includeNavigation: true,
+    includeAnimations: false,
+    styleTheme: 'default',
+    customBranding: false,
+    useRealData: false,
+    optimizeFor: 'usability',
+    targetFramework: 'react',
+  });
+  
+  // Load project and requirements data
   useEffect(() => {
-    if (requirements) {
-      // By default, select all completed or in-progress requirements with high/critical priority
-      const filtered = requirements.filter(req => 
-        (req.status === 'completed' || req.status === 'inProgress') && 
-        (req.priority === 'high' || req.priority === 'critical')
-      );
-      setSelectedRequirements(filtered.map(req => req.id));
+    const projectIdentifier = projectId || id;
+    if (projectIdentifier) {
+      loadProjectData(projectIdentifier);
     }
-  }, [requirements]);
+  }, [projectId, id]);
   
-  // Available technology options
-  const technologyOptions = [
-    { id: 'react', label: 'React', description: 'A JavaScript library for building user interfaces' },
-    { id: 'vue', label: 'Vue.js', description: 'The Progressive JavaScript Framework' },
-    { id: 'angular', label: 'Angular', description: 'A platform for building mobile & desktop web apps' },
-    { id: 'nextjs', label: 'Next.js', description: 'The React Framework for Production' },
-    { id: 'svelte', label: 'Svelte', description: 'Cybernetically enhanced web apps' }
-  ];
-  
-  // Available architecture options
-  const architectureOptions = [
-    { id: 'spa', label: 'Single Page App', description: 'Client-side rendered application' },
-    { id: 'ssr', label: 'Server-Side Rendering', description: 'Initial render on server with hydration' },
-    { id: 'ssg', label: 'Static Site Generation', description: 'Pre-rendered at build time' },
-    { id: 'pwa', label: 'Progressive Web App', description: 'Installable web application with offline support' }
-  ];
-  
-  // Available language options
-  const languageOptions = [
-    { id: 'javascript', label: 'JavaScript', description: 'Standard web scripting language' },
-    { id: 'typescript', label: 'TypeScript', description: 'Typed superset of JavaScript' }
-  ];
-  
-  // Available styling options
-  const stylingOptions = [
-    { id: 'css', label: 'Plain CSS', description: 'Standard CSS with custom styling' },
-    { id: 'scss', label: 'SCSS', description: 'CSS with variables and nesting' },
-    { id: 'tailwind', label: 'Tailwind CSS', description: 'Utility-first CSS framework' },
-    { id: 'materialui', label: 'Material UI', description: 'React components implementing Material Design' },
-    { id: 'bootstrap', label: 'Bootstrap', description: 'Component-based styling framework' }
-  ];
-  
-  // Available complexity options
-  const complexityOptions = [
-    { id: 'simple', label: 'Simple', description: 'Basic implementation with minimal features' },
-    { id: 'medium', label: 'Medium', description: 'Balanced complexity with common features' },
-    { id: 'advanced', label: 'Advanced', description: 'Full-featured implementation with optimizations' }
-  ];
-  
-  // Handle change in generator settings
-  const handleSettingChange = (setting, value) => {
-    setGeneratorSettings(prev => ({
-      ...prev,
-      [setting]: value
-    }));
+  // Load project data and requirements
+  const loadProjectData = async (projectId) => {
+    try {
+      setLoading(true);
+      
+      // Get project details
+      const projectData = await getProjectDetails(projectId);
+      setProject(projectData);
+      
+      // Get requirements
+      const requirementsData = await getRequirements(projectId);
+      
+      // Filter for approved and in-progress requirements
+      const filteredRequirements = requirementsData.filter(req => 
+        ['approved', 'in-progress'].includes(req.status)
+      );
+      
+      setRequirements(filteredRequirements);
+      
+      // Default to selecting all approved requirements
+      const approvedRequirements = requirementsData
+        .filter(req => req.status === 'approved')
+        .map(req => req.id);
+        
+      setSelectedRequirements(approvedRequirements);
+      
+      // Load existing prototypes if any
+      await loadExistingPrototypes(projectId);
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Error loading project data:', err);
+      setError('Failed to load project data. Please try again.');
+      setLoading(false);
+    }
   };
   
-  // Handle checkbox toggle for requirements
-  const handleRequirementToggle = (reqId) => {
+  // Load existing prototypes
+  const loadExistingPrototypes = async (projectId) => {
+    try {
+      const response = await fetch(`/api/v1/projects/${projectId}/prototypes`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to load existing prototypes');
+      }
+      
+      const data = await response.json();
+      setPrototypes(data.prototypes || []);
+      
+    } catch (err) {
+      console.error('Error loading existing prototypes:', err);
+      // We don't set error state here since this is not critical
+      setPrototypes([]);
+    }
+  };
+  
+  // Toggle requirement selection
+  const toggleRequirement = (requirementId) => {
     setSelectedRequirements(prev => {
-      if (prev.includes(reqId)) {
-        return prev.filter(id => id !== reqId);
+      if (prev.includes(requirementId)) {
+        return prev.filter(id => id !== requirementId);
       } else {
-        return [...prev, reqId];
+        return [...prev, requirementId];
       }
     });
   };
   
-  // Handle select all requirements
-  const handleSelectAllRequirements = () => {
-    if (requirements) {
-      setSelectedRequirements(requirements.map(req => req.id));
-    }
+  // Select all requirements
+  const selectAllRequirements = () => {
+    setSelectedRequirements(requirements.map(req => req.id));
   };
   
-  // Handle deselect all requirements
-  const handleDeselectAllRequirements = () => {
+  // Clear all selected requirements
+  const clearSelectedRequirements = () => {
     setSelectedRequirements([]);
   };
   
-  // Handle generate prototype
-  const handleGeneratePrototype = async () => {
-    if (!currentProject) {
-      toast.error('Please select a project first');
-      return;
+  // Handle option change
+  const handleOptionChange = (name, value) => {
+    setOptions(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Specific option dependencies
+    if (name === 'platform' && value === 'mobile') {
+      setOptions(prev => ({
+        ...prev,
+        targetFramework: 'react-native'
+      }));
     }
     
+    if (name === 'fidelity' && value === 'high') {
+      setOptions(prev => ({
+        ...prev,
+        includeAnimations: true
+      }));
+    }
+  };
+  
+  // Generate prototype
+  const generatePrototype = async () => {
     if (selectedRequirements.length === 0) {
-      toast.error('Please select at least one requirement');
+      showNotification({
+        type: 'warning',
+        message: 'Please select at least one requirement for the prototype'
+      });
       return;
     }
-    
-    setGenerating(true);
-    setProgress(0);
     
     try {
-      // In a real implementation, this would be an API call to the prototype generation service
-      // const response = await api.post('/generate-prototype', {
-      //   projectId: currentProject.id,
-      //   requirementIds: selectedRequirements,
-      //   settings: generatorSettings
-      // }, {
-      //   onUploadProgress: (progressEvent) => {
-      //     const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-      //     setProgress(percentCompleted);
-      //   }
-      // });
+      setGenerating(true);
+      setError(null);
       
-      // For demo purposes, simulate API call with progress
-      await new Promise(resolve => {
-        let currentProgress = 0;
-        const interval = setInterval(() => {
-          currentProgress += 5;
-          setProgress(currentProgress);
-          
-          if (currentProgress >= 100) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 300);
+      // Filter out selected requirements
+      const selectedRequirementObjects = requirements.filter(
+        req => selectedRequirements.includes(req.id)
+      );
+      
+      // Prepare data for API
+      const requestData = {
+        projectId: projectId || id,
+        requirements: selectedRequirementObjects,
+        options: options
+      };
+      
+      // Call API to generate prototype
+      const response = await fetch('/api/v1/prototypes/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
       });
       
-      // Get selected requirements details
-      const selectedReqs = requirements.filter(req => selectedRequirements.includes(req.id));
-      
-      // Generate mock prototype data
-      const prototypeData = generateMockPrototype(selectedReqs, generatorSettings);
-      
-      // Call callback with generated prototype
-      if (onPrototypeGenerated) {
-        onPrototypeGenerated(prototypeData);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to generate prototype');
       }
       
-      toast.success('Prototype generated successfully');
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to generate prototype';
-      toast.error(errorMessage);
-    } finally {
+      const data = await response.json();
+      
+      // Add new prototype to local state
+      setPrototypes(prev => [data.prototype, ...prev]);
+      
+      // Show success notification
+      showNotification({
+        type: 'success',
+        message: 'Prototype generated successfully'
+      });
+      
+      // Show success modal
+      showModal('infoModal', {
+        title: 'Prototype Generated',
+        content: (
+          <div>
+            <p>Your prototype has been successfully generated.</p>
+            <div className="p-4 bg-green-50 rounded-md mt-2">
+              <h3 className="font-medium text-green-800">Prototype details:</h3>
+              <ul className="mt-2 text-sm text-green-700 list-disc list-inside">
+                <li>Name: {data.prototype.name}</li>
+                <li>Target platform: {options.platform}</li>
+                <li>Fidelity level: {options.fidelity}</li>
+              </ul>
+            </div>
+          </div>
+        ),
+        onConfirm: () => router.push(`/projects/${projectId || id}/prototypes/${data.prototype.id}`)
+      });
+      
+      setGenerating(false);
+    } catch (err) {
+      console.error('Error generating prototype:', err);
+      setError('Failed to generate prototype. Please try again.');
       setGenerating(false);
     }
   };
   
-  // Generate mock prototype data for demo purposes
-  const generateMockPrototype = (selectedReqs, settings) => {
-    const currentDate = new Date().toISOString();
-    const prototypeId = `proto-${Date.now()}`;
-    
-    // Generate file structure based on chosen technology
-    let fileStructure = [];
-    
-    if (settings.technology === 'react' || settings.technology === 'nextjs') {
-      fileStructure = [
-        { name: 'src', type: 'directory', children: [
-          { name: 'components', type: 'directory', children: [
-            { name: 'layout', type: 'directory', children: [
-              { name: 'Layout.js', type: 'file', language: 'javascript', size: 2400 },
-              { name: 'Navbar.js', type: 'file', language: 'javascript', size: 1800 },
-              { name: 'Sidebar.js', type: 'file', language: 'javascript', size: 2100 }
-            ]},
-            { name: 'common', type: 'directory', children: [
-              { name: 'Button.js', type: 'file', language: 'javascript', size: 850 },
-              { name: 'Card.js', type: 'file', language: 'javascript', size: 780 },
-              { name: 'Input.js', type: 'file', language: 'javascript', size: 1200 }
-            ]}
-          ]},
-          { name: 'pages', type: 'directory', children: [
-            { name: 'index.js', type: 'file', language: 'javascript', size: 1600 },
-            { name: 'dashboard.js', type: 'file', language: 'javascript', size: 2300 }
-          ]},
-          { name: 'styles', type: 'directory', children: [
-            { name: 'globals.css', type: 'file', language: 'css', size: 3500 }
-          ]},
-          { name: 'utils', type: 'directory', children: [
-            { name: 'api.js', type: 'file', language: 'javascript', size: 1200 },
-            { name: 'helpers.js', type: 'file', language: 'javascript', size: 950 }
-          ]},
-          { name: 'App.js', type: 'file', language: 'javascript', size: 1400 },
-          { name: 'index.js', type: 'file', language: 'javascript', size: 350 }
-        ]},
-        { name: 'public', type: 'directory', children: [
-          { name: 'favicon.ico', type: 'file', language: 'binary', size: 4500 },
-          { name: 'logo.svg', type: 'file', language: 'svg', size: 2800 }
-        ]},
-        { name: 'package.json', type: 'file', language: 'json', size: 750 },
-        { name: 'README.md', type: 'file', language: 'markdown', size: 3200 }
-      ];
-    } else if (settings.technology === 'vue') {
-      fileStructure = [
-        { name: 'src', type: 'directory', children: [
-          { name: 'components', type: 'directory', children: [
-            { name: 'layout', type: 'directory', children: [
-              { name: 'AppLayout.vue', type: 'file', language: 'vue', size: 2400 },
-              { name: 'NavBar.vue', type: 'file', language: 'vue', size: 1800 },
-              { name: 'SideMenu.vue', type: 'file', language: 'vue', size: 2100 }
-            ]},
-            { name: 'common', type: 'directory', children: [
-              { name: 'AppButton.vue', type: 'file', language: 'vue', size: 850 },
-              { name: 'AppCard.vue', type: 'file', language: 'vue', size: 780 },
-              { name: 'AppInput.vue', type: 'file', language: 'vue', size: 1200 }
-            ]}
-          ]},
-          { name: 'views', type: 'directory', children: [
-            { name: 'Home.vue', type: 'file', language: 'vue', size: 1600 },
-            { name: 'Dashboard.vue', type: 'file', language: 'vue', size: 2300 }
-          ]},
-          { name: 'assets', type: 'directory', children: [
-            { name: 'style.css', type: 'file', language: 'css', size: 3500 }
-          ]},
-          { name: 'services', type: 'directory', children: [
-            { name: 'api.js', type: 'file', language: 'javascript', size: 1200 },
-            { name: 'utils.js', type: 'file', language: 'javascript', size: 950 }
-          ]},
-          { name: 'App.vue', type: 'file', language: 'vue', size: 1400 },
-          { name: 'main.js', type: 'file', language: 'javascript', size: 350 }
-        ]},
-        { name: 'public', type: 'directory', children: [
-          { name: 'favicon.ico', type: 'file', language: 'binary', size: 4500 },
-          { name: 'logo.svg', type: 'file', language: 'svg', size: 2800 }
-        ]},
-        { name: 'package.json', type: 'file', language: 'json', size: 750 },
-        { name: 'README.md', type: 'file', language: 'markdown', size: 3200 }
-      ];
-    } else if (settings.technology === 'angular') {
-      fileStructure = [
-        { name: 'src', type: 'directory', children: [
-          { name: 'app', type: 'directory', children: [
-            { name: 'layout', type: 'directory', children: [
-              { name: 'layout.component.ts', type: 'file', language: 'typescript', size: 1200 },
-              { name: 'layout.component.html', type: 'file', language: 'html', size: 1800 },
-              { name: 'navbar.component.ts', type: 'file', language: 'typescript', size: 950 },
-              { name: 'navbar.component.html', type: 'file', language: 'html', size: 1200 }
-            ]},
-            { name: 'shared', type: 'directory', children: [
-              { name: 'button.component.ts', type: 'file', language: 'typescript', size: 850 },
-              { name: 'button.component.html', type: 'file', language: 'html', size: 350 },
-              { name: 'card.component.ts', type: 'file', language: 'typescript', size: 780 },
-              { name: 'card.component.html', type: 'file', language: 'html', size: 450 }
-            ]},
-            { name: 'services', type: 'directory', children: [
-              { name: 'api.service.ts', type: 'file', language: 'typescript', size: 1200 },
-              { name: 'auth.service.ts', type: 'file', language: 'typescript', size: 1500 }
-            ]},
-            { name: 'app.component.ts', type: 'file', language: 'typescript', size: 800 },
-            { name: 'app.component.html', type: 'file', language: 'html', size: 350 },
-            { name: 'app.module.ts', type: 'file', language: 'typescript', size: 1200 }
-          ]},
-          { name: 'assets', type: 'directory', children: [
-            { name: 'logo.svg', type: 'file', language: 'svg', size: 2800 }
-          ]},
-          { name: 'styles.scss', type: 'file', language: 'scss', size: 3500 },
-          { name: 'index.html', type: 'file', language: 'html', size: 650 }
-        ]},
-        { name: 'angular.json', type: 'file', language: 'json', size: 4500 },
-        { name: 'package.json', type: 'file', language: 'json', size: 950 },
-        { name: 'README.md', type: 'file', language: 'markdown', size: 3200 }
-      ];
-    }
-    
-    // Generate prototype code snippets based on requirements
-    const codeSnippets = selectedReqs.map(req => {
-      const language = settings.language === 'typescript' ? 'typescript' : 'javascript';
-      const componentType = settings.technology === 'angular' ? 'component' : 
-                            settings.technology === 'vue' ? 'vue component' : 'react component';
+  // View prototype
+  const viewPrototype = (prototypeId) => {
+    router.push(`/projects/${projectId || id}/prototypes/${prototypeId}`);
+  };
+  
+  // Export prototype
+  const exportPrototype = async (prototypeId) => {
+    try {
+      const prototype = prototypes.find(p => p.id === prototypeId);
       
-      return {
-        requirementId: req.id,
-        requirementTitle: req.title,
-        snippets: [
-          {
-            name: `${req.title.replace(/\s+/g, '')}${componentType === 'component' ? 'Component' : ''}`,
-            description: `Implementation of "${req.title}" requirement`,
-            code: `// ${req.title}\n// ${req.description || 'No description provided'}\n\n` +
-                  getSnippetForRequirement(req, settings),
-            language: language,
-            type: componentType
-          }
+      if (!prototype) {
+        throw new Error('Prototype not found');
+      }
+      
+      showModal('exportOptions', {
+        title: `Export ${prototype.name}`,
+        entityType: 'prototype',
+        entityId: prototypeId,
+        formats: [
+          { id: 'html', name: 'HTML/CSS/JS', icon: 'code' },
+          { id: 'react', name: 'React Components', icon: 'react' },
+          { id: 'figma', name: 'Figma Design', icon: 'figma' },
+          { id: 'pdf', name: 'PDF Document', icon: 'document' }
         ]
-      };
-    });
-    
-    // Generate example API endpoints if includeAPI is enabled
-    const apiEndpoints = settings.includeAPI ? generateApiEndpoints(selectedReqs) : [];
-    
-    return {
-      id: prototypeId,
-      name: `${currentProject?.name || 'New Project'} Prototype`,
-      description: `Generated prototype based on ${selectedReqs.length} requirements`,
-      createdAt: currentDate,
-      settings: generatorSettings,
-      fileStructure: fileStructure,
-      codeSnippets: codeSnippets,
-      apiEndpoints: apiEndpoints,
-      previewUrls: {
-        desktop: `/api/prototypes/${prototypeId}/preview?device=desktop`,
-        tablet: `/api/prototypes/${prototypeId}/preview?device=tablet`,
-        mobile: `/api/prototypes/${prototypeId}/preview?device=mobile`
-      }
-    };
-  };
-  
-  // Generate code snippet based on requirement and settings
-  const getSnippetForRequirement = (requirement, settings) => {
-    const isTypescript = settings.language === 'typescript';
-    const prefix = isTypescript ? 'interface' : 'type';
-    const typeSuffix = isTypescript ? ';' : '';
-    
-    // Generate different code based on the requirement's category or title
-    if (requirement.title.toLowerCase().includes('authentication') || 
-        requirement.title.toLowerCase().includes('login')) {
-      if (settings.technology === 'react') {
-        return `import React, { useState${isTypescript ? ', FormEvent' : ''} } from 'react';
-${isTypescript ? `
-interface LoginFormProps {
-  onSubmit: (username: string, password: string) => void;
-  isLoading?: boolean;
-}
-
-interface LoginFormState {
-  username: string;
-  password: string;
-  error: string | null;
-}
-` : ''}
-const LoginForm = ({ onSubmit, isLoading = false }${isTypescript ? ': LoginFormProps' : ''}) => {
-  const [formState, setFormState] = useState${isTypescript ? '<LoginFormState>' : ''}({
-    username: '',
-    password: '',
-    error: null
-  });
-  
-  const handleSubmit = (e${isTypescript ? ': FormEvent<HTMLFormElement>' : ''}) => {
-    e.preventDefault();
-    
-    // Validate form
-    if (!formState.username.trim() || !formState.password.trim()) {
-      setFormState(prev => ({ ...prev, error: 'Please enter both username and password' }));
-      return;
-    }
-    
-    // Clear error and submit
-    setFormState(prev => ({ ...prev, error: null }));
-    onSubmit(formState.username, formState.password);
-  };
-  
-  return (
-    <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
-      
-      {formState.error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-          {formState.error}
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label className="block text-gray-700 mb-1" htmlFor="username">Username</label>
-          <input
-            id="username"
-            type="text"
-            value={formState.username}
-            onChange={(e) => setFormState(prev => ({ ...prev, username: e.target.value }))}
-            className="w-full p-2 border border-gray-300 rounded"
-            disabled={isLoading}
-          />
-        </div>
-        
-        <div className="mb-6">
-          <label className="block text-gray-700 mb-1" htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            value={formState.password}
-            onChange={(e) => setFormState(prev => ({ ...prev, password: e.target.value }))}
-            className="w-full p-2 border border-gray-300 rounded"
-            disabled={isLoading}
-          />
-        </div>
-        
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-        >
-          {isLoading ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
-    </div>
-  );
-};
-
-export default LoginForm;`;
-      } else if (settings.technology === 'vue') {
-        return `<template>
-  <div class="login-form">
-    <h2 class="form-title">Login</h2>
-    
-    <div v-if="error" class="error-message">
-      {{ error }}
-    </div>
-    
-    <form @submit.prevent="handleSubmit">
-      <div class="form-group">
-        <label for="username">Username</label>
-        <input
-          id="username"
-          v-model="form.username"
-          type="text"
-          :disabled="isLoading"
-        />
-      </div>
-      
-      <div class="form-group">
-        <label for="password">Password</label>
-        <input
-          id="password"
-          v-model="form.password"
-          type="password"
-          :disabled="isLoading"
-        />
-      </div>
-      
-      <button
-        type="submit"
-        :disabled="isLoading"
-        class="submit-button"
-      >
-        {{ isLoading ? 'Logging in...' : 'Login' }}
-      </button>
-    </form>
-  </div>
-</template>
-
-<script${isTypescript ? ' lang="ts"' : ''}>
-${isTypescript ? `
-import { defineComponent, reactive, ref } from 'vue';
-
-interface LoginForm {
-  username: string;
-  password: string;
-}
-` : ''}
-export default ${isTypescript ? 'defineComponent(' : ''}{ 
-  name: 'LoginForm',
-  props: {
-    isLoading: {
-      type: Boolean,
-      default: false
-    }
-  },
-  ${isTypescript ? 'setup(props, { emit }) {' : 'setup(props, { emit }) {'}
-    const form = reactive({
-      username: '',
-      password: ''
-    });
-    
-    const error = ref(null);
-    
-    function handleSubmit() {
-      // Validate form
-      if (!form.username.trim() || !form.password.trim()) {
-        error.value = 'Please enter both username and password';
-        return;
-      }
-      
-      // Clear error and submit
-      error.value = null;
-      emit('submit', {
-        username: form.username,
-        password: form.password
+      });
+    } catch (err) {
+      showNotification({
+        type: 'error',
+        message: 'Failed to prepare prototype export'
       });
     }
-    
-    return {
-      form,
-      error,
-      handleSubmit
-    };
-  }
-}${isTypescript ? ')' : ''};
-</script>
-
-<style scoped>
-.login-form {
-  max-width: 400px;
-  margin: 2rem auto;
-  padding: 1.5rem;
-  background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.form-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
-
-.error-message {
-  margin-bottom: 1rem;
-  padding: 0.75rem;
-  background-color: #FEE2E2;
-  color: #B91C1C;
-  border-radius: 0.25rem;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.25rem;
-  color: #4B5563;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #D1D5DB;
-  border-radius: 0.25rem;
-}
-
-.submit-button {
-  width: 100%;
-  padding: 0.5rem 1rem;
-  background-color: #2563EB;
-  color: white;
-  border: none;
-  border-radius: 0.25rem;
-  cursor: pointer;
-}
-
-.submit-button:hover {
-  background-color: #1D4ED8;
-}
-
-.submit-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-</style>`;
-      } else if (settings.technology === 'angular') {
-        return `import { Component, Input, Output, EventEmitter${isTypescript ? ', OnInit' : ''} } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-
-${isTypescript ? `
-interface LoginCredentials {
-  username: string;
-  password: string;
-}
-` : ''}
-
-@Component({
-  selector: 'app-login-form',
-  templateUrl: './login-form.component.html',
-  styleUrls: ['./login-form.component.scss']
-})
-export class LoginFormComponent${isTypescript ? ' implements OnInit' : ''} {
-  @Input() isLoading = false;
-  @Output() formSubmit = new EventEmitter${isTypescript ? '<LoginCredentials>' : ''}();
+  };
   
-  loginForm: FormGroup;
-  errorMessage: string | null = null;
-  
-  constructor(private fb: FormBuilder) { 
-    this.loginForm = this.fb.group({
-      username: ['', Validators.required],
-      password: ['', Validators.required]
+  // Delete prototype
+  const deletePrototype = async (prototypeId) => {
+    showModal('confirmation', {
+      title: 'Delete Prototype',
+      message: 'Are you sure you want to delete this prototype?',
+      confirmButton: 'Delete',
+      cancelButton: 'Cancel',
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/v1/prototypes/${prototypeId}`, {
+            method: 'DELETE'
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to delete prototype');
+          }
+          
+          setPrototypes(prev => prev.filter(p => p.id !== prototypeId));
+          
+          showNotification({
+            type: 'success',
+            message: 'Prototype deleted successfully'
+          });
+        } catch (err) {
+          showNotification({
+            type: 'error',
+            message: 'Failed to delete prototype'
+          });
+        }
+      }
     });
-  }
+  };
   
-  ngOnInit(): void {
-    // Initialization logic
-  }
-  
-  onSubmit(): void {
-    if (this.loginForm.invalid) {
-      this.errorMessage = 'Please enter both username and password';
-      return;
-    }
-    
-    this.errorMessage = null;
-    this.formSubmit.emit(this.loginForm.value);
-  }
-}
-
-/* login-form.component.html */
-/*
-<div class="login-form">
-  <h2 class="form-title">Login</h2>
-  
-  <div *ngIf="errorMessage" class="error-message">
-    {{ errorMessage }}
-  </div>
-  
-  <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-    <div class="form-group">
-      <label for="username">Username</label>
-      <input
-        id="username"
-        formControlName="username"
-        type="text"
-        [disabled]="isLoading"
-      />
-    </div>
-    
-    <div class="form-group">
-      <label for="password">Password</label>
-      <input
-        id="password"
-        formControlName="password"
-        type="password"
-        [disabled]="isLoading"
-      />
-    </div>
-    
-    <button
-      type="submit"
-      [disabled]="isLoading"
-      class="submit-button"
-    >
-      {{ isLoading ? 'Logging in...' : 'Login' }}
-    </button>
-  </form>
-</div>
-*/
-
-/* login-form.component.scss */
-/*
-.login-form {
-  max-width: 400px;
-  margin: 2rem auto;
-  padding: 1.5rem;
-  background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.form-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
-
-.error-message {
-  margin-bottom: 1rem;
-  padding: 0.75rem;
-  background-color: #FEE2E2;
-  color: #B91C1C;
-  border-radius: 0.25rem;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.25rem;
-  color: #4B5563;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #D1D5DB;
-  border-radius: 0.25rem;
-}
-
-.submit-button {
-  width: 100%;
-  padding: 0.5rem 1rem;
-  background-color: #2563EB;
-  color: white;
-  border: none;
-  border-radius: 0.25rem;
-  cursor: pointer;
-}
-
-.submit-button:hover {
-  background-color: #1D4ED8;
-}
-
-.submit-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-*/
-`;
-      }
-    } else if (requirement.title.toLowerCase().includes('dashboard') || 
-               requirement.title.toLowerCase().includes('analytics')) {
-      if (settings.technology === 'react') {
-        return `import React, { useState, useEffect${isTypescript ? ', FC' : ''} } from 'react';
-${isTypescript ? `
-interface DashboardProps {
-  userId: string;
-}
-
-interface DashboardStats {
-  totalProjects: number;
-  activeProjects: number;
-  completedTasks: number;
-  pendingTasks: number;
-  recentActivity: Array<{
-    id: string;
-    action: string;
-    date: string;
-    user: string;
-  }>;
-}
-` : ''}
-const Dashboard = ({ userId }${isTypescript ? ': DashboardProps' : ''}) => {
-  const [stats, setStats] = useState${isTypescript ? '<DashboardStats | null>' : ''}(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState${isTypescript ? '<string | null>' : ''}(null);
-  
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        // In a real implementation this would be an API call
-        // const response = await fetch(`/api/users/${userId}/dashboard-stats`);
-        // const data = await response.json();
-        
-        // Simulated API response
-        const mockData = {
-          totalProjects: 12,
-          activeProjects: 5,
-          completedTasks: 87,
-          pendingTasks: 34,
-          recentActivity: [
-            { id: 'act1', action: 'Updated project requirements', date: '2025-04-21T14:30:00Z', user: 'John Doe' },
-            { id: 'act2', action: 'Completed task "Design Login Screen"', date: '2025-04-20T09:15:00Z', user: 'Jane Smith' },
-            { id: 'act3', action: 'Added new team member', date: '2025-04-19T16:45:00Z', user: 'John Doe' }
-          ]
-        };
-        
-        setStats(mockData);
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to fetch dashboard stats');
-        setLoading(false);
-      }
-    };
-    
-    fetchStats();
-  }, [userId]);
-  
+  // Loading state
   if (loading) {
     return (
-      <div className="p-6 text-center">
-        <div className="animate-spin h-10 w-10 border-4 border-blue-500 rounded-full border-t-transparent mx-auto"></div>
-        <p className="mt-4 text-gray-600">Loading dashboard...</p>
+      <div className="flex justify-center items-center p-10">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
       </div>
     );
   }
   
+  // Error state
   if (error) {
     return (
-      <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-center">
-        <div className="text-red-500 text-lg mb-2">Error</div>
-        <p className="text-red-700">{error}</p>
-        <button className="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200">
-          Retry
+      <div className="bg-red-50 p-4 rounded-lg text-red-800">
+        <p>{error}</p>
+        <button 
+          onClick={() => loadProjectData(projectId || id)}
+          className="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+        >
+          Try Again
         </button>
       </div>
     );
   }
   
-  if (!stats) {
-    return null;
-  }
-  
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
-      
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 mb-1">Total Projects</div>
-          <div className="text-3xl font-bold text-gray-900">{stats.totalProjects}</div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 mb-1">Active Projects</div>
-          <div className="text-3xl font-bold text-blue-600">{stats.activeProjects}</div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 mb-1">Completed Tasks</div>
-          <div className="text-3xl font-bold text-green-600">{stats.completedTasks}</div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 mb-1">Pending Tasks</div>
-          <div className="text-3xl font-bold text-yellow-600">{stats.pendingTasks}</div>
-        </div>
+    <div className="prototype-generator space-y-6">
+      <div>
+        <h1 className="text-xl font-bold mb-2">Generate Prototype</h1>
+        <p className="text-gray-600">
+          Create interactive prototypes based on your project requirements.
+        </p>
       </div>
       
-      {/* Recent Activity */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
-        
-        <div className="divide-y divide-gray-200">
-          {stats.recentActivity.map(activity => (
-            <div key={activity.id} className="py-3">
-              <div className="flex justify-between">
-                <div className="text-sm font-medium text-gray-900">{activity.action}</div>
-                <div className="text-sm text-gray-500">
-                  {new Date(activity.date).toLocaleDateString()}
-                </div>
+      {/* Main content area */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left sidebar - Requirements selection */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-4 border-b border-gray-200">
+            <h2 className="font-semibold">Requirements</h2>
+            <p className="text-sm text-gray-500">Select requirements to include</p>
+            
+            <div className="flex justify-between items-center mt-2">
+              <span className="text-sm">{selectedRequirements.length} of {requirements.length} selected</span>
+              <div>
+                <button onClick={selectAllRequirements} className="text-xs text-indigo-600 hover:text-indigo-800 mr-2">
+                  Select All
+                </button>
+                <button onClick={clearSelectedRequirements} className="text-xs text-indigo-600 hover:text-indigo-800">
+                  Clear All
+                </button>
               </div>
-              <div className="text-xs text-gray-500 mt-1">By {activity.user}</div>
             </div>
-          ))}
-        </div>
-        
-        <button className="mt-4 w-full py-2 px-4 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300">
-          View All Activity
-        </button>
-      </div>
-    </div>
-  );
-};
-
-export default Dashboard;`;
-      }
-    }
-    
-    // Return a generic example if no specific match was found
-    return `// Generic implementation for: ${requirement.title}
-// This is a placeholder implementation and should be customized based on specific requirements.
-
-${settings.technology === 'react' ? `import React from 'react';
-
-const ${requirement.title.replace(/\s+/g, '')} = () => {
-  return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">${requirement.title}</h2>
-      <p className="text-gray-700">${requirement.description || 'No description provided'}</p>
-      
-      {/* Implement your component here */}
-      <div className="mt-4 p-4 border border-gray-300 rounded">
-        <p className="text-sm text-gray-500">Component implementation details will go here.</p>
-      </div>
-    </div>
-  );
-};
-
-export default ${requirement.title.replace(/\s+/g, '')};` 
-      : settings.technology === 'vue' ? `<template>
-  <div class="component-container">
-    <h2 class="component-title">${requirement.title}</h2>
-    <p class="component-description">${requirement.description || 'No description provided'}</p>
-    
-    <!-- Implement your component here -->
-    <div class="component-implementation">
-      <p class="implementation-placeholder">Component implementation details will go here.</p>
-    </div>
-  </div>
-</template>
-
-<script${isTypescript ? ' lang="ts"' : ''}>
-${isTypescript ? 'import { defineComponent } from \'vue\';\n\n' : ''}
-export default ${isTypescript ? 'defineComponent(' : ''}{
-  name: '${requirement.title.replace(/\s+/g, '')}',
-  props: {},
-  setup() {
-    // Component logic here
-    
-    return {
-      // Exposed properties and methods
-    };
-  }
-}${isTypescript ? ')' : ''};
-</script>
-
-<style scoped>
-.component-container {
-  padding: 1rem;
-}
-
-.component-title {
-  font-size: 1.25rem;
-  font-weight: bold;
-  margin-bottom: 1rem;
-}
-
-.component-description {
-  color: #4B5563;
-  margin-bottom: 1rem;
-}
-
-.component-implementation {
-  margin-top: 1rem;
-  padding: 1rem;
-  border: 1px solid #D1D5DB;
-  border-radius: 0.25rem;
-}
-
-.implementation-placeholder {
-  font-size: 0.875rem;
-  color: #6B7280;
-}
-</style>`
-      : `import { Component${isTypescript ? ', OnInit' : ''} } from '@angular/core';
-
-@Component({
-  selector: 'app-${requirement.title.toLowerCase().replace(/\s+/g, '-')}',
-  templateUrl: './${requirement.title.toLowerCase().replace(/\s+/g, '-')}.component.html',
-  styleUrls: ['./${requirement.title.toLowerCase().replace(/\s+/g, '-')}.component.scss']
-})
-export class ${requirement.title.replace(/\s+/g, '')}Component${isTypescript ? ' implements OnInit' : ''} {
-  constructor() { }
-  
-  ${isTypescript ? 'ngOnInit(): void {\n    // Initialization logic\n  }\n' : 'ngOnInit() {\n    // Initialization logic\n  }\n'}
-}
-
-/* ${requirement.title.toLowerCase().replace(/\s+/g, '-')}.component.html */
-/*
-<div class="component-container">
-  <h2 class="component-title">${requirement.title}</h2>
-  <p class="component-description">${requirement.description || 'No description provided'}</p>
-  
-  <!-- Implement your component here -->
-  <div class="component-implementation">
-    <p class="implementation-placeholder">Component implementation details will go here.</p>
-  </div>
-</div>
-*/
-
-/* ${requirement.title.toLowerCase().replace(/\s+/g, '-')}.component.scss */
-/*
-.component-container {
-  padding: 1rem;
-}
-
-.component-title {
-  font-size: 1.25rem;
-  font-weight: bold;
-  margin-bottom: 1rem;
-}
-
-.component-description {
-  color: #4B5563;
-  margin-bottom: 1rem;
-}
-
-.component-implementation {
-  margin-top: 1rem;
-  padding: 1rem;
-  border: 1px solid #D1D5DB;
-  border-radius: 0.25rem;
-}
-
-.implementation-placeholder {
-  font-size: 0.875rem;
-  color: #6B7280;
-}
-*/`};
-  };
-  
-  // Generate mock API endpoints based on requirements
-  const generateApiEndpoints = (requirements) => {
-    const endpoints = [];
-    
-    requirements.forEach(req => {
-      // Extract entity name from requirement if possible
-      const entityName = req.title
-        .replace(/Add|Create|Update|Delete|List|Get|Manage|Display|Show|View|Edit|Remove|Implement/gi, '')
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, '-');
-      
-      if (entityName) {
-        // Create CRUD endpoints for the entity
-        endpoints.push({
-          method: 'GET',
-          path: `/api/${entityName}s`,
-          description: `Get a list of ${entityName}s`,
-          queryParams: ['page', 'limit', 'sort', 'filter'],
-          responseExample: {
-            items: [{ id: '1', name: `Example ${entityName}` }],
-            totalCount: 100,
-            page: 1,
-            limit: 10
-          }
-        });
-        
-        endpoints.push({
-          method: 'GET',
-          path: `/api/${entityName}s/{id}`,
-          description: `Get a specific ${entityName} by ID`,
-          pathParams: ['id'],
-          responseExample: {
-            id: '1',
-            name: `Example ${entityName}`,
-            createdAt: '2025-04-22T14:30:00Z',
-            updatedAt: '2025-04-22T15:45:00Z'
-          }
-        });
-        
-        endpoints.push({
-          method: 'POST',
-          path: `/api/${entityName}s`,
-          description: `Create a new ${entityName}`,
-          requestBodyExample: {
-            name: `New ${entityName}`,
-            description: `Description for new ${entityName}`
-          },
-          responseExample: {
-            id: '100',
-            name: `New ${entityName}`,
-            description: `Description for new ${entityName}`,
-            createdAt: '2025-04-22T16:00:00Z',
-            updatedAt: '2025-04-22T16:00:00Z'
-          }
-        });
-        
-        endpoints.push({
-          method: 'PUT',
-          path: `/api/${entityName}s/{id}`,
-          description: `Update an existing ${entityName}`,
-          pathParams: ['id'],
-          requestBodyExample: {
-            name: `Updated ${entityName}`,
-            description: `Updated description for ${entityName}`
-          },
-          responseExample: {
-            id: '1',
-            name: `Updated ${entityName}`,
-            description: `Updated description for ${entityName}`,
-            createdAt: '2025-04-22T14:30:00Z',
-            updatedAt: '2025-04-22T16:15:00Z'
-          }
-        });
-        
-        endpoints.push({
-          method: 'DELETE',
-          path: `/api/${entityName}s/{id}`,
-          description: `Delete a ${entityName}`,
-          pathParams: ['id'],
-          responseExample: {
-            success: true,
-            message: `${entityName} deleted successfully`
-          }
-        });
-      }
-    });
-    
-    return endpoints;
-  };
-  
-  // Render the prototype generator UI
-  return (
-    <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg">
-      {/* Settings Panel */}
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Prototype Settings</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Technology selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Technology
-            </label>
-            <select
-              value={generatorSettings.technology}
-              onChange={(e) => handleSettingChange('technology', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              disabled={generating}
-            >
-              {technologyOptions.map(option => (
-                <option key={option.id} value={option.id}>{option.label}</option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {technologyOptions.find(opt => opt.id === generatorSettings.technology)?.description}
-            </p>
           </div>
           
-          {/* Architecture selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Architecture
-            </label>
-            <select
-              value={generatorSettings.architecture}
-              onChange={(e) => handleSettingChange('architecture', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              disabled={generating}
-            >
-              {architectureOptions.map(option => (
-                <option key={option.id} value={option.id}>{option.label}</option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {architectureOptions.find(opt => opt.id === generatorSettings.architecture)?.description}
-            </p>
-          </div>
-          
-          {/* Language selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Language
-            </label>
-            <select
-              value={generatorSettings.language}
-              onChange={(e) => handleSettingChange('language', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              disabled={generating}
-            >
-              {languageOptions.map(option => (
-                <option key={option.id} value={option.id}>{option.label}</option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {languageOptions.find(opt => opt.id === generatorSettings.language)?.description}
-            </p>
-          </div>
-          
-          {/* Styling selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Styling
-            </label>
-            <select
-              value={generatorSettings.styling}
-              onChange={(e) => handleSettingChange('styling', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              disabled={generating}
-            >
-              {stylingOptions.map(option => (
-                <option key={option.id} value={option.id}>{option.label}</option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {stylingOptions.find(opt => opt.id === generatorSettings.styling)?.description}
-            </p>
-          </div>
-          
-          {/* Complexity selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Complexity
-            </label>
-            <select
-              value={generatorSettings.complexity}
-              onChange={(e) => handleSettingChange('complexity', e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              disabled={generating}
-            >
-              {complexityOptions.map(option => (
-                <option key={option.id} value={option.id}>{option.label}</option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {complexityOptions.find(opt => opt.id === generatorSettings.complexity)?.description}
-            </p>
-          </div>
-        </div>
-        
-        {/* Additional options */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="flex items-center">
-            <input
-              id="includeAuth"
-              type="checkbox"
-              checked={generatorSettings.includeAuth}
-              onChange={(e) => handleSettingChange('includeAuth', e.target.checked)}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              disabled={generating}
-            />
-            <label htmlFor="includeAuth" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-              Include Authentication
-            </label>
-          </div>
-          
-          <div className="flex items-center">
-            <input
-              id="includeDarkMode"
-              type="checkbox"
-              checked={generatorSettings.includeDarkMode}
-              onChange={(e) => handleSettingChange('includeDarkMode', e.target.checked)}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              disabled={generating}
-            />
-            <label htmlFor="includeDarkMode" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-              Include Dark Mode
-            </label>
-          </div>
-          
-          <div className="flex items-center">
-            <input
-              id="includeAPI"
-              type="checkbox"
-              checked={generatorSettings.includeAPI}
-              onChange={(e) => handleSettingChange('includeAPI', e.target.checked)}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              disabled={generating}
-            />
-            <label htmlFor="includeAPI" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-              Include API Endpoints
-            </label>
-          </div>
-          
-          <div className="flex items-center">
-            <input
-              id="includeTests"
-              type="checkbox"
-              checked={generatorSettings.includeTests}
-              onChange={(e) => handleSettingChange('includeTests', e.target.checked)}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              disabled={generating}
-            />
-            <label htmlFor="includeTests" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-              Include Tests
-            </label>
-          </div>
-        </div>
-      </div>
-      
-      {/* Requirements Selection */}
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white">Select Requirements</h2>
-          
-          <div className="flex space-x-2">
-            <button
-              onClick={handleSelectAllRequirements}
-              disabled={generating || (requirements && requirements.length === selectedRequirements.length)}
-              className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
-            >
-              Select All
-            </button>
-            <button
-              onClick={handleDeselectAllRequirements}
-              disabled={generating || selectedRequirements.length === 0}
-              className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
-            >
-              Deselect All
-            </button>
-          </div>
-        </div>
-        
-        {requirements && requirements.length > 0 ? (
-          <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-            {requirements.map(req => (
-              <div 
-                key={req.id}
-                className="flex items-start p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-              >
-                <input
-                  id={`req-${req.id}`}
-                  type="checkbox"
-                  checked={selectedRequirements.includes(req.id)}
-                  onChange={() => handleRequirementToggle(req.id)}
-                  className="h-4 w-4 mt-1 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  disabled={generating}
-                />
-                <div className="ml-3">
-                  <label htmlFor={`req-${req.id}`} className="block text-sm font-medium text-gray-900 dark:text-white">
-                    {req.title}
-                  </label>
-                  {req.description && (
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      {req.description}
-                    </p>
-                  )}
-                  <div className="mt-1 flex items-center space-x-2">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      req.priority === 'high' || req.priority === 'critical'
-                        ? 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'
-                        : req.priority === 'medium'
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
-                          : 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
-                    }`}>
-                      {req.priority}
-                    </span>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      req.status === 'completed'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
-                        : req.status === 'inProgress'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                    }`}>
-                      {req.status}
-                    </span>
-                  </div>
-                </div>
+          <div className="max-h-96 overflow-y-auto p-2">
+            {requirements.length === 0 ? (
+              <div className="p-4 text-center text-gray-500">
+                <p>No approved or in-progress requirements found.</p>
               </div>
-            ))}
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {requirements.map((req) => (
+                  <li key={req.id} className="px-2 py-2">
+                    <label className="flex items-start cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedRequirements.includes(req.id)}
+                        onChange={() => toggleRequirement(req.id)}
+                        className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mt-1"
+                      />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium">{req.title}</p>
+                        <p className="text-xs text-gray-500 line-clamp-2">{req.description}</p>
+                      </div>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        ) : (
-          <div className="text-center p-8 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <p className="text-gray-500 dark:text-gray-400">No requirements available.</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Create requirements in the Requirements section first.
-            </p>
+        </div>
+        
+        {/* Right side - Options and actions */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Platform options */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden p-4">
+            <h2 className="font-semibold mb-3">Prototype Options</h2>
+            
+            {/* Platform selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Target Platform:</label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleOptionChange('platform', 'web')}
+                  className={`px-3 py-1.5 rounded-md text-sm ${
+                    options.platform === 'web' 
+                      ? 'bg-indigo-100 text-indigo-700 border border-indigo-300' 
+                      : 'bg-white border border-gray-300 text-gray-700'
+                  }`}
+                >
+                  Web
+                </button>
+                <button
+                  onClick={() => handleOptionChange('platform', 'mobile')}
+                  className={`px-3 py-1.5 rounded-md text-sm ${
+                    options.platform === 'mobile' 
+                      ? 'bg-indigo-100 text-indigo-700 border border-indigo-300' 
+                      : 'bg-white border border-gray-300 text-gray-700'
+                  }`}
+                >
+                  Mobile
+                </button>
+                <button
+                  onClick={() => handleOptionChange('platform', 'desktop')}
+                  className={`px-3 py-1.5 rounded-md text-sm ${
+                    options.platform === 'desktop' 
+                      ? 'bg-indigo-100 text-indigo-700 border border-indigo-300' 
+                      : 'bg-white border border-gray-300 text-gray-700'
+                  }`}
+                >
+                  Desktop
+                </button>
+              </div>
+            </div>
+            
+            {/* Fidelity selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fidelity Level:</label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleOptionChange('fidelity', 'low')}
+                  className={`px-3 py-1.5 rounded-md text-sm ${
+                    options.fidelity === 'low' 
+                      ? 'bg-indigo-100 text-indigo-700 border border-indigo-300' 
+                      : 'bg-white border border-gray-300 text-gray-700'
+                  }`}
+                >
+                  Low
+                </button>
+                <button
+                  onClick={() => handleOptionChange('fidelity', 'medium')}
+                  className={`px-3 py-1.5 rounded-md text-sm ${
+                    options.fidelity === 'medium' 
+                      ? 'bg-indigo-100 text-indigo-700 border border-indigo-300' 
+                      : 'bg-white border border-gray-300 text-gray-700'
+                  }`}
+                >
+                  Medium
+                </button>
+                <button
+                  onClick={() => handleOptionChange('fidelity', 'high')}
+                  className={`px-3 py-1.5 rounded-md text-sm ${
+                    options.fidelity === 'high' 
+                      ? 'bg-indigo-100 text-indigo-700 border border-indigo-300' 
+                      : 'bg-white border border-gray-300 text-gray-700'
+                  }`}
+                >
+                  High
+                </button>
+              </div>
+            </div>
+            
+            {/* Framework selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Target Framework:</label>
+              <select
+                value={options.targetFramework}
+                onChange={(e) => handleOptionChange('targetFramework', e.target.value)}
+                className="block w-full p-2 border border-gray-300 rounded-md"
+              >
+                {options.platform === 'web' && (
+                  <>
+                    <option value="html">HTML/CSS/JavaScript</option>
+                    <option value="react">React</option>
+                    <option value="vue">Vue.js</option>
+                    <option value="angular">Angular</option>
+                  </>
+                )}
+                {options.platform === 'mobile' && (
+                  <>
+                    <option value="react-native">React Native</option>
+                    <option value="flutter">Flutter</option>
+                    <option value="swift">Swift (iOS)</option>
+                    <option value="kotlin">Kotlin (Android)</option>
+                  </>
+                )}
+                {options.platform === 'desktop' && (
+                  <>
+                    <option value="electron">Electron</option>
+                    <option value="wpf">.NET WPF</option>
+                    <option value="qt">Qt</option>
+                  </>
+                )}
+              </select>
+            </div>
+            
+            {/* Toggle options */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center">
+                <input
+                  id="include-navigation"
+                  type="checkbox"
+                  checked={options.includeNavigation}
+                  onChange={(e) => handleOptionChange('includeNavigation', e.target.checked)}
+                  className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                />
+                <label htmlFor="include-navigation" className="ml-2 text-sm text-gray-700">
+                  Include Navigation
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="include-animations"
+                  type="checkbox"
+                  checked={options.includeAnimations}
+                  onChange={(e) => handleOptionChange('includeAnimations', e.target.checked)}
+                  className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                />
+                <label htmlFor="include-animations" className="ml-2 text-sm text-gray-700">
+                  Include Animations
+                </label>
+              </div>
+            </div>
+            
+            {/* Generate button */}
+            <div className="mt-4 text-right">
+              <button
+                onClick={generatePrototype}
+                disabled={generating || selectedRequirements.length === 0}
+                className={`px-4 py-2 rounded-md ${
+                  generating || selectedRequirements.length === 0
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                {generating ? 'Generating...' : 'Generate Prototype'}
+              </button>
+            </div>
           </div>
-        )}
-      </div>
-      
-      {/* Generate Button */}
-      <div className="p-6 flex justify-end">
-        <button
-          onClick={handleGeneratePrototype}
-          disabled={generating || selectedRequirements.length === 0 || !currentProject}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-        >
-          {generating ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Generating ({progress}%)
-            </>
-          ) : (
-            'Generate Prototype'
+          
+          {/* Existing Prototypes */}
+          {prototypes.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-4 border-b border-gray-200">
+                <h2 className="font-semibold">Existing Prototypes</h2>
+                <p className="text-sm text-gray-500">Previously generated prototypes</p>
+              </div>
+              
+              <ul className="divide-y divide-gray-100">
+                {prototypes.map((prototype) => (
+                  <li key={prototype.id} className="p-4 hover:bg-gray-50">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-medium">{prototype.name}</h3>
+                        <p className="text-sm text-gray-500">
+                          {prototype.platform} {prototype.framework} - {prototype.createdAt ? new Date(prototype.createdAt).toLocaleDateString() : 'Unknown date'}
+                        </p>
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => viewPrototype(prototype.id)}
+                          className="px-3 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => exportPrototype(prototype.id)}
+                          className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                        >
+                          Export
+                        </button>
+                        <button
+                          onClick={() => deletePrototype(prototype.id)}
+                          className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
-        </button>
+        </div>
       </div>
     </div>
   );
-};
-
-export default PrototypeGenerator;
+}

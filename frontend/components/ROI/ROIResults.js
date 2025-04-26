@@ -1,457 +1,545 @@
-import React, { useMemo } from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import { 
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, 
-  CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  Cell, PieChart, Pie, Label 
+import {
+  Box,
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Grid,
+  Tab,
+  Tabs,
+  Typography,
+  Chip,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Button,
+  IconButton,
+  Tooltip,
+  useTheme,
+} from '@mui/material';
+import {
+  PieChart,
+  Pie,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
+  Area,
+  AreaChart,
+  ReferenceLine,
 } from 'recharts';
+import DownloadIcon from '@mui/icons-material/Download';
+import ShareIcon from '@mui/icons-material/Share';
+import PrintIcon from '@mui/icons-material/Print';
+import SaveIcon from '@mui/icons-material/Save';
+
+import roiService from '../../services/roiService';
+
+// TabPanel component for tabbed content
+function TabPanel(props) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`roi-tabpanel-${index}`}
+      aria-labelledby={`roi-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+    </div>
+  );
+}
+
+TabPanel.propTypes = {
+  children: PropTypes.node,
+  index: PropTypes.number.isRequired,
+  value: PropTypes.number.isRequired,
+};
 
 /**
- * ROIResults Component
- * 
- * Displays calculated ROI results, metrics, and visualizations
- * Based on business metrics and project parameters
+ * ROIResults component to display the calculated ROI metrics
  */
 const ROIResults = ({ 
-  businessMetrics = {},
-  projectParameters = {},
-  className 
+  roiData, 
+  onSave,
+  onPrint,
+  onExport,
+  onShare,
+  isLoading = false
 }) => {
-  // Calculate ROI metrics
-  const calculations = useMemo(() => {
-    // Return empty results if required data isn't available
-    if (!businessMetrics.industry || !projectParameters.implementationTimeMonths) {
+  const theme = useTheme();
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Get chart colors
+  const chartColors = roiService.getChartColors();
+
+  // Handle tab change
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
+  
+  // Format the summary metrics for display
+  const formatSummaryMetrics = () => {
+    const { results, parameters } = roiData;
+    
+    return [
+      {
+        title: 'ROI',
+        value: roiService.formatPercentage(results.roi_percentage),
+        description: 'Return on Investment',
+        positive: results.roi_percentage > 0,
+        mainMetric: true,
+      },
+      {
+        title: 'NPV',
+        value: roiService.formatCurrency(results.net_present_value, parameters.currency),
+        description: 'Net Present Value',
+        positive: results.net_present_value > 0,
+        mainMetric: true,
+      },
+      {
+        title: 'Payback Period',
+        value: roiService.formatPaybackPeriod(results.payback_period_months),
+        description: 'Time to recoup investment',
+        positive: true,
+        mainMetric: true,
+      },
+      {
+        title: 'Benefit-Cost Ratio',
+        value: results.benefit_cost_ratio.toFixed(2),
+        description: 'Benefits relative to costs',
+        positive: results.benefit_cost_ratio > 1,
+        mainMetric: true,
+      }
+    ];
+  };
+
+  // Format data for the cash flow line chart
+  const prepareCashFlowChartData = () => {
+    if (!roiData?.results?.timeline) return [];
+    
+    return roiData.results.timeline.map((item) => {
+      const totalCosts = Object.values(item.costs).reduce((sum, value) => sum + value, 0);
+      const totalBenefits = Object.values(item.benefits).reduce((sum, value) => sum + value, 0);
+      
+      let periodLabel = `Month ${item.period}`;
+      if (item.date) {
+        const date = new Date(item.date);
+        periodLabel = date.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short'
+        });
+      }
+      
       return {
-        isValid: false,
-        summary: {},
-        cashFlows: [],
-        breakdown: {},
-        metrics: {}
+        period: periodLabel,
+        periodMonth: item.period,
+        costs: -totalCosts,
+        benefits: totalBenefits,
+        netCashFlow: item.net_cash_flow,
+        cumulativeCashFlow: item.cumulative_cash_flow,
       };
-    }
-    
-    // Helper function to parse number
-    const parseNumber = (value, defaultValue = 0) => {
-      const parsed = parseFloat(value);
-      return isNaN(parsed) ? defaultValue : parsed;
-    };
-    
-    // Extract numeric values from inputs
-    const annualRevenue = parseNumber(businessMetrics.annualRevenue, 100000);
-    const revenueGrowthRate = parseNumber(businessMetrics.revenueGrowthRate, 5) / 100;
-    const customerCount = parseNumber(businessMetrics.customerCount, 100);
-    const laborCostsPerHour = parseNumber(businessMetrics.laborCostsPerHour, 50);
-    const operationalCostsMonthly = parseNumber(businessMetrics.operationalCostsMonthly, 10000);
-    const customerAcquisitionCost = parseNumber(businessMetrics.customerAcquisitionCost, 1000);
-    const averageTaskCompletionTime = parseNumber(businessMetrics.averageTaskCompletionTime, 60);
-    const employeeCount = parseNumber(businessMetrics.employeeCount, 10);
-    const customerChurnRate = parseNumber(businessMetrics.customerChurnRate, 15) / 100;
-    
-    const implementationTimeMonths = parseNumber(projectParameters.implementationTimeMonths, 3);
-    const upfrontCost = parseNumber(projectParameters.upfrontCost, 50000);
-    const ongoingMonthlyCost = parseNumber(projectParameters.ongoingMonthlyCost, 500);
-    const maintenanceHoursPerMonth = parseNumber(projectParameters.maintenanceHoursPerMonth, 10);
-    
-    const efficiencyGainPercent = parseNumber(projectParameters.efficiencyGainPercent, 15) / 100;
-    const revenueIncreasePercent = parseNumber(projectParameters.revenueIncreasePercent, 5) / 100;
-    const costReductionPercent = parseNumber(projectParameters.costReductionPercent, 10) / 100;
-    const employeeProductivityGainPercent = parseNumber(projectParameters.employeeProductivityGainPercent, 20) / 100;
-    
-    const calculationPeriodYears = parseNumber(projectParameters.calculationPeriodYears, 3);
-    const discountRate = parseNumber(projectParameters.discountRate, 10) / 100;
-    
-    // Calculate monthly values
-    const monthlyRevenue = annualRevenue / 12;
-    const annualOperationalCosts = operationalCostsMonthly * 12;
-    
-    // Calculate maintenance costs
-    const monthlyMaintenanceCost = maintenanceHoursPerMonth * laborCostsPerHour;
-    
-    // Calculate monthly benefits
-    const monthlyEfficiencyGain = operationalCostsMonthly * efficiencyGainPercent;
-    const monthlyRevenueIncrease = monthlyRevenue * revenueIncreasePercent;
-    const monthlyCostReduction = operationalCostsMonthly * costReductionPercent;
-    const monthlyProductivityValue = laborCostsPerHour * employeeCount * 160 * employeeProductivityGainPercent / 12;
-    
-    const totalMonthlyBenefit = monthlyEfficiencyGain + monthlyRevenueIncrease + monthlyCostReduction + monthlyProductivityValue;
-    
-    // Generate cash flow projections
-    const totalMonths = Math.ceil(calculationPeriodYears * 12);
-    const cashFlows = [];
-    let cumulativeCashFlow = -upfrontCost;
-    let paybackPeriod = null;
-    
-    for (let month = 0; month <= totalMonths; month++) {
-      let cashFlow = 0;
-      
-      if (month === 0) {
-        // Initial investment
-        cashFlow = -upfrontCost;
-      } else if (month <= implementationTimeMonths) {
-        // During implementation, only costs
-        cashFlow = -ongoingMonthlyCost;
-      } else {
-        // After implementation, benefits minus costs
-        cashFlow = totalMonthlyBenefit - ongoingMonthlyCost - monthlyMaintenanceCost;
-      }
-      
-      cumulativeCashFlow += cashFlow;
-      
-      // Calculate payback period
-      if (paybackPeriod === null && cumulativeCashFlow >= 0 && month > 0) {
-        paybackPeriod = month;
-      }
-      
-      cashFlows.push({
-        month,
-        cashFlow,
-        cumulativeCashFlow
-      });
-    }
-    
-    // Calculate NPV
-    let npv = -upfrontCost;
-    for (let i = 1; i < cashFlows.length; i++) {
-      npv += cashFlows[i].cashFlow / Math.pow(1 + discountRate / 12, i);
-    }
-    
-    // Calculate IRR (simplified approximation)
-    // For actual IRR, you'd need to solve for r where NPV = 0
-    // This is a rough approximation
-    const annualCashFlow = totalMonthlyBenefit * 12 - ongoingMonthlyCost * 12 - monthlyMaintenanceCost * 12;
-    const approximateIRR = annualCashFlow / upfrontCost;
-    
-    // Calculate ROI
-    const totalInvestment = upfrontCost + (ongoingMonthlyCost * totalMonths) + (monthlyMaintenanceCost * (totalMonths - implementationTimeMonths));
-    const totalBenefits = totalMonthlyBenefit * (totalMonths - implementationTimeMonths);
-    const roi = ((totalBenefits - totalInvestment) / totalInvestment) * 100;
-    
-    // Format for benefit breakdown
-    const benefitBreakdown = [
-      { name: 'Efficiency Gain', value: monthlyEfficiencyGain * (totalMonths - implementationTimeMonths) },
-      { name: 'Revenue Increase', value: monthlyRevenueIncrease * (totalMonths - implementationTimeMonths) },
-      { name: 'Cost Reduction', value: monthlyCostReduction * (totalMonths - implementationTimeMonths) },
-      { name: 'Productivity Gain', value: monthlyProductivityValue * (totalMonths - implementationTimeMonths) }
-    ];
-    
-    // Format for cost breakdown
-    const costBreakdown = [
-      { name: 'Upfront Cost', value: upfrontCost },
-      { name: 'Ongoing Costs', value: ongoingMonthlyCost * totalMonths },
-      { name: 'Maintenance', value: monthlyMaintenanceCost * (totalMonths - implementationTimeMonths) }
-    ];
-    
-    // Return calculated results
-    return {
-      isValid: true,
-      summary: {
-        roi: roi.toFixed(2),
-        npv: npv.toFixed(2),
-        paybackPeriodMonths: paybackPeriod || totalMonths,
-        totalInvestment: totalInvestment.toFixed(2),
-        totalBenefits: totalBenefits.toFixed(2),
-        netBenefit: (totalBenefits - totalInvestment).toFixed(2)
-      },
-      cashFlows: cashFlows,
-      breakdown: {
-        benefits: benefitBreakdown,
-        costs: costBreakdown
-      },
-      metrics: {
-        annualRevenue,
-        annualOperationalCosts,
-        monthlyRevenue,
-        implementationTimeMonths,
-        upfrontCost,
-        ongoingMonthlyCost,
-        totalMonthlyBenefit,
-        irr: approximateIRR * 100
-      }
-    };
-  }, [businessMetrics, projectParameters]);
-  
-  // Determine if calculations are valid
-  const hasValidCalculations = calculations.isValid;
-  
-  // Format currency
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
+    });
   };
-  
-  // Colors for visualizations
-  const colors = {
-    positive: '#4F46E5',
-    negative: '#DC2626',
-    neutral: '#4B5563',
-    breakdown: ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6B7280']
-  };
-  
-  // Format cash flow data for chart
-  const cashFlowData = useMemo(() => {
-    if (!hasValidCalculations) return [];
-    
-    return calculations.cashFlows.map(flow => ({
-      month: `Month ${flow.month}`,
-      cashFlow: flow.cashFlow,
-      cumulativeCashFlow: flow.cumulativeCashFlow
-    }));
-  }, [calculations.cashFlows, hasValidCalculations]);
-  
-  if (!hasValidCalculations) {
-    return (
-      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow p-6 ${className || ''}`}>
-        <div className="text-center py-10">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            Complete the form to view ROI results
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Fill in the business metrics and project parameters to generate ROI calculations
-          </p>
-        </div>
-      </div>
-    );
-  }
+
+  // Calculate summary metrics and chart data
+  const summaryMetrics = formatSummaryMetrics();
+  const cashFlowChartData = prepareCashFlowChartData();
+  const paybackPeriodMonth = roiData?.results?.payback_period_months;
+  const isPositiveROI = roiData?.results?.roi_percentage > 0;
   
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow p-6 ${className || ''}`}>
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">ROI Analysis</h2>
+    <Box>
+      {/* Header with Key Metrics */}
+      <Paper 
+        elevation={3} 
+        sx={{ 
+          p: 3, 
+          mb: 3, 
+          bgcolor: isPositiveROI ? 'success.light' : 'error.light',
+          color: '#fff'
+        }}
+      >
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={6}>
+            <Typography variant="h4" gutterBottom>
+              ROI Analysis: {roiData.name}
+            </Typography>
+            <Typography variant="body1" gutterBottom>
+              {roiData.description || 'ROI calculation results based on provided costs and benefits.'}
+            </Typography>
+            {roiData.project_id && (
+              <Chip 
+                label={`Project ID: ${roiData.project_id}`} 
+                size="small" 
+                sx={{ mt: 1, bgcolor: 'rgba(255,255,255,0.2)' }}
+              />
+            )}
+          </Grid>
+          <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <Tooltip title="Save ROI Analysis">
+                <IconButton onClick={onSave} disabled={isLoading} color="inherit">
+                  <SaveIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Print ROI Analysis">
+                <IconButton onClick={onPrint} disabled={isLoading} color="inherit">
+                  <PrintIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Export as PDF/Excel">
+                <IconButton onClick={onExport} disabled={isLoading} color="inherit">
+                  <DownloadIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Share ROI Analysis">
+                <IconButton onClick={onShare} disabled={isLoading} color="inherit">
+                  <ShareIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
       
-      {/* ROI summary metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-indigo-900 dark:text-indigo-200 mb-1">Return on Investment</h3>
-          <div className="flex items-baseline">
-            <span className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-              {calculations.summary.roi}%
-            </span>
-            <span className="ml-1 text-sm text-indigo-500 dark:text-indigo-300">
-              over {projectParameters.calculationPeriodYears} {projectParameters.calculationPeriodYears === '1' ? 'year' : 'years'}
-            </span>
-          </div>
-        </div>
-        
-        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-green-900 dark:text-green-200 mb-1">Net Present Value</h3>
-          <div className="flex items-baseline">
-            <span className="text-3xl font-bold text-green-600 dark:text-green-400">
-              {formatCurrency(calculations.summary.npv)}
-            </span>
-          </div>
-        </div>
-        
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">Payback Period</h3>
-          <div className="flex items-baseline">
-            <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-              {calculations.summary.paybackPeriodMonths}
-            </span>
-            <span className="ml-1 text-sm text-blue-500 dark:text-blue-300">
-              {calculations.summary.paybackPeriodMonths === 1 ? 'month' : 'months'}
-            </span>
-          </div>
-        </div>
-      </div>
-      
-      {/* Additional metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Financial Summary</h3>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Total Investment</span>
-              <span className="font-medium text-gray-900 dark:text-white">
-                {formatCurrency(calculations.summary.totalInvestment)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Total Benefits</span>
-              <span className="font-medium text-green-600 dark:text-green-400">
-                {formatCurrency(calculations.summary.totalBenefits)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Net Benefit</span>
-              <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                {formatCurrency(calculations.summary.netBenefit)}
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Monthly Impact</h3>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Monthly Cost</span>
-              <span className="font-medium text-red-600 dark:text-red-400">
-                {formatCurrency(calculations.metrics.ongoingMonthlyCost)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Monthly Benefit</span>
-              <span className="font-medium text-green-600 dark:text-green-400">
-                {formatCurrency(calculations.metrics.totalMonthlyBenefit)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Net Monthly Impact</span>
-              <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                {formatCurrency(calculations.metrics.totalMonthlyBenefit - calculations.metrics.ongoingMonthlyCost)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Cash flow chart */}
-      <div className="mb-8">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Cash Flow Projection</h3>
-        <div className="h-80 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={cashFlowData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="month" 
-                tick={{ fontSize: 10 }}
-                interval={Math.ceil(cashFlowData.length / 10)}
-              />
-              <YAxis
-                tickFormatter={(value) => `$${Math.abs(value) > 999 ? `${(value / 1000).toFixed(0)}k` : value}`}
-              />
-              <Tooltip 
-                formatter={(value) => [`${formatCurrency(value)}`, 'Amount']}
-                labelFormatter={(label) => label}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="cashFlow" 
-                name="Monthly Cash Flow" 
-                stroke={colors.positive}
-                strokeWidth={2}
-                dot={false}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="cumulativeCashFlow" 
-                name="Cumulative Cash Flow" 
-                stroke={colors.neutral}
-                strokeWidth={2}
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-      
-      {/* Benefit breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-        <div>
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Benefit Breakdown</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={calculations.breakdown.benefits}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={2}
-                  label={(entry) => `${entry.name} (${((entry.value / calculations.summary.totalBenefits) * 100).toFixed(0)}%)`}
-                  labelLine={false}
-                >
-                  {calculations.breakdown.benefits.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={colors.breakdown[index % colors.breakdown.length]} />
-                  ))}
-                  <Label
-                    value={formatCurrency(calculations.summary.totalBenefits)}
-                    position="center"
-                    className="text-sm font-medium"
-                  />
-                </Pie>
-                <Tooltip formatter={(value) => formatCurrency(value)} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        
-        <div>
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Cost Breakdown</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={calculations.breakdown.costs}
-                layout="vertical"
-                margin={{ top: 5, right: 30, left: 120, bottom: 5 }}
+      {/* Summary Metrics Cards */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        {summaryMetrics
+          .filter(metric => metric.mainMetric)
+          .map((metric, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Card 
+                sx={{ 
+                  height: '100%',
+                  borderLeft: 4,
+                  borderColor: metric.positive ? 'success.main' : 'error.main',
+                }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  type="number"
-                  tickFormatter={(value) => `$${Math.abs(value) > 999 ? `${(value / 1000).toFixed(0)}k` : value}`}
-                />
-                <YAxis 
-                  type="category" 
-                  dataKey="name" 
-                  tick={{ fontSize: 12 }}
-                />
-                <Tooltip formatter={(value) => formatCurrency(value)} />
-                <Bar 
-                  dataKey="value" 
-                  fill={colors.neutral}
-                  radius={[0, 4, 4, 0]}
-                >
-                  {calculations.breakdown.costs.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={colors.breakdown[index % colors.breakdown.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    {metric.title}
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                    {metric.value}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {metric.description}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+      </Grid>
       
-      {/* Recommendations and conclusions */}
-      <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Conclusion</h3>
+      {/* Tabbed Content */}
+      <Box sx={{ width: '100%', bgcolor: 'background.paper', mb: 3 }}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          indicatorColor="primary"
+          textColor="primary"
+          variant="fullWidth"
+        >
+          <Tab label="Cash Flow Analysis" />
+          <Tab label="Timeline" />
+          <Tab label="Details" />
+        </Tabs>
         
-        <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          {parseFloat(calculations.summary.roi) > 100 ? (
-            <p>This project shows an <span className="font-medium text-green-600 dark:text-green-400">exceptional ROI</span> and is strongly recommended. The investment is projected to generate significant value, with the payback period occurring in just {calculations.summary.paybackPeriodMonths} months.</p>
-          ) : parseFloat(calculations.summary.roi) > 50 ? (
-            <p>This project shows a <span className="font-medium text-green-600 dark:text-green-400">strong ROI</span> and is recommended. The benefits significantly outweigh the costs, with the payback period occurring in {calculations.summary.paybackPeriodMonths} months.</p>
-          ) : parseFloat(calculations.summary.roi) > 0 ? (
-            <p>This project shows a <span className="font-medium text-blue-600 dark:text-blue-400">positive ROI</span> and could be worth pursuing. The investment is projected to pay for itself in {calculations.summary.paybackPeriodMonths} months.</p>
-          ) : (
-            <p>This project shows a <span className="font-medium text-red-600 dark:text-red-400">negative ROI</span> based on the current parameters. Consider adjusting the project scope or parameters to improve the financial outlook.</p>
-          )}
-        </div>
+        {/* Cash Flow Analysis Tab */}
+        <TabPanel value={activeTab} index={0}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Card>
+                <CardHeader title="Cash Flow Over Time" />
+                <Divider />
+                <CardContent sx={{ height: 400 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={cashFlowChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="period" />
+                      <YAxis 
+                        tickFormatter={(value) => 
+                          roiService.formatCurrency(value, roiData.parameters.currency).replace(/[^0-9-+.]/g, '')}
+                      />
+                      <RechartsTooltip 
+                        formatter={(value, name) => {
+                          const formattedValue = roiService.formatCurrency(
+                            Math.abs(value), 
+                            roiData.parameters.currency
+                          );
+                          const displayName = {
+                            'costs': 'Costs',
+                            'benefits': 'Benefits',
+                            'netCashFlow': 'Net Cash Flow',
+                            'cumulativeCashFlow': 'Cumulative Cash Flow',
+                          }[name];
+                          return [formattedValue, displayName];
+                        }}
+                      />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="costs" 
+                        name="Costs" 
+                        stroke={chartColors.costs.border} 
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="benefits" 
+                        name="Benefits" 
+                        stroke={chartColors.benefits.border} 
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="netCashFlow" 
+                        name="Net Cash Flow" 
+                        stroke={chartColors.netCashFlow.border} 
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="cumulativeCashFlow" 
+                        name="Cumulative Cash Flow" 
+                        stroke={chartColors.cumulativeCashFlow.border} 
+                        strokeWidth={3}
+                        dot={{ r: 4 }}
+                      />
+                      {paybackPeriodMonth != null && (
+                        <ReferenceLine 
+                          x={`Month ${Math.floor(paybackPeriodMonth)}`} 
+                          stroke="green" 
+                          strokeDasharray="3 3" 
+                          label={{ 
+                            value: 'Payback Period', 
+                            position: 'top', 
+                            fill: 'green',
+                            fontSize: 12
+                          }} 
+                        />
+                      )}
+                      <ReferenceLine y={0} stroke="#000" strokeWidth={1} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Card>
+                <CardHeader title="Cumulative Cash Flow" />
+                <Divider />
+                <CardContent sx={{ height: 300 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={cashFlowChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="period" />
+                      <YAxis 
+                        tickFormatter={(value) => 
+                          roiService.formatCurrency(value, roiData.parameters.currency).replace(/[^0-9-+.]/g, '')}
+                      />
+                      <RechartsTooltip 
+                        formatter={(value) => [
+                          roiService.formatCurrency(value, roiData.parameters.currency),
+                          'Cumulative Cash Flow'
+                        ]}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="cumulativeCashFlow" 
+                        stroke={chartColors.cumulativeCashFlow.border}
+                        fill={chartColors.cumulativeCashFlow.main}
+                        strokeWidth={2}
+                      />
+                      <ReferenceLine y={0} stroke="#000" strokeWidth={1} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </TabPanel>
         
-        <div className="text-xs text-gray-500 dark:text-gray-400 italic">
-          <p>Note: This ROI analysis is based on the provided inputs and represents an estimate. Actual results may vary.</p>
-          <p className="mt-1">
-            The analysis uses a discount rate of {projectParameters.discountRate}% and a time horizon of {projectParameters.calculationPeriodYears} years.
-          </p>
-        </div>
-      </div>
-    </div>
+        {/* Timeline Tab */}
+        <TabPanel value={activeTab} index={1}>
+          <Card>
+            <CardHeader 
+              title="Monthly Cash Flow Timeline" 
+              subheader={`Timeline: ${roiData.parameters.timeline_months} months | Currency: ${roiData.parameters.currency}`}
+            />
+            <Divider />
+            <Box sx={{ overflow: 'auto', maxHeight: 600 }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Period</TableCell>
+                    <TableCell align="right">Costs</TableCell>
+                    <TableCell align="right">Benefits</TableCell>
+                    <TableCell align="right">Net Cash Flow</TableCell>
+                    <TableCell align="right">Cumulative Cash Flow</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {roiData.results.timeline.map((item) => {
+                    const totalCosts = Object.values(item.costs).reduce((sum, value) => sum + value, 0);
+                    const totalBenefits = Object.values(item.benefits).reduce((sum, value) => sum + value, 0);
+                    let periodLabel = `Month ${item.period}`;
+                    if (item.date) {
+                      const date = new Date(item.date);
+                      periodLabel = date.toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'short'
+                      });
+                    }
+                    
+                    const isPaybackPeriod = paybackPeriodMonth && 
+                      Math.floor(paybackPeriodMonth) === item.period;
+                    
+                    return (
+                      <TableRow 
+                        key={item.period}
+                        sx={{ 
+                          backgroundColor: isPaybackPeriod ? 'success.light' : 'inherit',
+                          '&:nth-of-type(odd)': { bgcolor: 'action.hover' }
+                        }}
+                      >
+                        <TableCell component="th" scope="row">
+                          {periodLabel}
+                          {isPaybackPeriod && (
+                            <Chip 
+                              label="Payback Period" 
+                              size="small" 
+                              color="success"
+                              sx={{ ml: 1 }}
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell align="right">
+                          {roiService.formatCurrency(totalCosts, roiData.parameters.currency)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {roiService.formatCurrency(totalBenefits, roiData.parameters.currency)}
+                        </TableCell>
+                        <TableCell 
+                          align="right"
+                          sx={{ 
+                            color: item.net_cash_flow >= 0 ? 'success.main' : 'error.main',
+                            fontWeight: 'medium'
+                          }}
+                        >
+                          {roiService.formatCurrency(item.net_cash_flow, roiData.parameters.currency)}
+                        </TableCell>
+                        <TableCell 
+                          align="right"
+                          sx={{ 
+                            color: item.cumulative_cash_flow >= 0 ? 'success.main' : 'error.main',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {roiService.formatCurrency(item.cumulative_cash_flow, roiData.parameters.currency)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </Box>
+          </Card>
+        </TabPanel>
+        
+        {/* Details Tab */}
+        <TabPanel value={activeTab} index={2}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardHeader title="Project Parameters" />
+                <Divider />
+                <CardContent>
+                  <Grid container spacing={2}>
+                    <Grid item xs={6}>
+                      <Typography variant="subtitle2">Timeline</Typography>
+                      <Typography variant="body1">
+                        {roiData.parameters.timeline_months} months
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="subtitle2">Discount Rate</Typography>
+                      <Typography variant="body1">
+                        {(roiData.parameters.discount_rate * 100).toFixed(1)}%
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="subtitle2">Currency</Typography>
+                      <Typography variant="body1">
+                        {roiData.parameters.currency}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="subtitle2">Start Date</Typography>
+                      <Typography variant="body1">
+                        {roiData.parameters.start_date 
+                          ? new Date(roiData.parameters.start_date).toLocaleDateString() 
+                          : 'Not specified'}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardHeader title="Summary" />
+                <Divider />
+                <CardContent>
+                  <Typography variant="body1" paragraph>
+                    This ROI analysis shows {isPositiveROI
+                      ? `a positive return of ${roiService.formatPercentage(roiData.results.roi_percentage)}`
+                      : `a negative return of ${roiService.formatPercentage(roiData.results.roi_percentage)}`}
+                    {" "}with a Net Present Value of {roiService.formatCurrency(roiData.results.net_present_value, roiData.parameters.currency)}.
+                  </Typography>
+                  <Typography variant="body1">
+                    {roiData.results.payback_period_months 
+                      ? `The investment will be recovered in ${roiService.formatPaybackPeriod(roiData.results.payback_period_months)}.`
+                      : "The investment will not be recovered within the analyzed timeline."}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </TabPanel>
+      </Box>
+    </Box>
   );
 };
 
 ROIResults.propTypes = {
-  businessMetrics: PropTypes.object,
-  projectParameters: PropTypes.object,
-  className: PropTypes.string
+  roiData: PropTypes.object.isRequired,
+  onSave: PropTypes.func,
+  onPrint: PropTypes.func,
+  onExport: PropTypes.func,
+  onShare: PropTypes.func,
+  isLoading: PropTypes.bool,
 };
 
 export default ROIResults;

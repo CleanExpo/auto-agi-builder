@@ -1,198 +1,343 @@
 import React, { useState, useEffect } from 'react';
-import { withProtection } from '../components/auth/ProtectedRoute';
+import { useRouter } from 'next/router';
+import Head from 'next/head';
 import Layout from '../components/layout/Layout';
 import PrototypeGenerator from '../components/prototype/PrototypeGenerator';
 import PrototypeViewer from '../components/prototype/PrototypeViewer';
-import { useProject, useUI } from '../contexts';
-import api from '../lib/api';
+import { useProject } from '../contexts/ProjectContext';
+import { useUI } from '../contexts/UIContext';
 
 /**
- * Prototype Page
+ * Prototype Page Component
  * 
- * Integrates the prototype generator and viewer for creating code prototypes
- * based on project requirements
+ * Serves as the main prototype management page, providing both prototype 
+ * generation and viewing capabilities. Switches between modes based on URL parameters.
  */
-const PrototypePage = () => {
-  const { currentProject } = useProject();
-  const { toast } = useUI();
+export default function PrototypePage() {
+  const router = useRouter();
+  const { id, prototypeId, view } = router.query;
+  const { showNotification } = useUI();
+  const { getProjectDetails } = useProject();
   
-  const [requirements, setRequirements] = useState([]);
+  // State
+  const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [prototype, setPrototype] = useState(null);
+  const [mode, setMode] = useState('list'); // list, generate, view
   
-  // Fetch requirements when current project changes
+  // Determine the mode based on URL parameters
   useEffect(() => {
-    fetchRequirements();
-  }, [currentProject]);
-  
-  // Fetch requirements from API
-  const fetchRequirements = async () => {
-    if (!currentProject) {
-      setRequirements([]);
-      setLoading(false);
-      return;
+    if (prototypeId) {
+      setMode('view');
+    } else if (view === 'generate') {
+      setMode('generate');
+    } else {
+      setMode('list');
     }
-    
-    setLoading(true);
-    
+  }, [prototypeId, view]);
+  
+  // Load project data
+  useEffect(() => {
+    if (id) {
+      loadProjectData(id);
+    }
+  }, [id]);
+  
+  // Load project data
+  const loadProjectData = async (projectId) => {
     try {
-      const response = await api.get(`/projects/${currentProject.id}/requirements`);
-      setRequirements(response.data.requirements);
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to fetch requirements';
-      toast.error(errorMessage);
-      // Use demo data for now if API fails
-      setRequirements(getDemoRequirements());
-    } finally {
+      setLoading(true);
+      setError(null);
+      
+      const projectData = await getProjectDetails(projectId);
+      setProject(projectData);
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Error loading project:', err);
+      setError('Failed to load project. Please try again.');
       setLoading(false);
     }
   };
   
-  // Get demo requirements data (for development)
-  const getDemoRequirements = () => {
-    return [
-      {
-        id: 'req-1',
-        title: 'User Authentication System',
-        description: 'Implement secure login/logout with JWT and role-based access control',
-        priority: 'high',
-        status: 'completed',
-        category: 'Security',
-        createdAt: '2025-03-15T10:30:00Z',
-        updatedAt: '2025-03-20T14:45:00Z',
-        assignee: 'John Doe'
-      },
-      {
-        id: 'req-2',
-        title: 'Dashboard Analytics',
-        description: 'Create visual representations of project metrics and KPIs',
-        priority: 'medium',
-        status: 'inProgress',
-        category: 'Reporting',
-        createdAt: '2025-03-18T11:20:00Z',
-        updatedAt: '2025-03-22T09:15:00Z',
-        assignee: 'Jane Smith'
-      },
-      {
-        id: 'req-3',
-        title: 'Document Export Functionality',
-        description: 'Allow users to export reports in PDF, Excel, and CSV formats',
-        priority: 'low',
-        status: 'pending',
-        category: 'Feature',
-        createdAt: '2025-03-19T15:40:00Z',
-        updatedAt: '2025-03-19T15:40:00Z',
-        assignee: 'Unassigned'
-      },
-      {
-        id: 'req-4',
-        title: 'Multi-device Preview',
-        description: 'Enable responsive design testing across desktop, tablet, and mobile',
-        priority: 'high',
-        status: 'completed',
-        category: 'UI/UX',
-        createdAt: '2025-03-20T13:10:00Z',
-        updatedAt: '2025-03-25T11:30:00Z',
-        assignee: 'Alice Johnson'
-      },
-      {
-        id: 'req-5',
-        title: 'API Documentation',
-        description: 'Generate comprehensive API documentation with example requests/responses',
-        priority: 'medium',
-        status: 'inProgress',
-        category: 'Documentation',
-        createdAt: '2025-03-22T10:20:00Z',
-        updatedAt: '2025-03-26T16:45:00Z',
-        assignee: 'Bob Martin'
-      }
-    ];
+  // Navigate to generate view
+  const navigateToGenerate = () => {
+    router.push(`/projects/${id}/prototype?view=generate`);
   };
   
-  // Handle prototype generation completion
-  const handlePrototypeGenerated = (generatedPrototype) => {
-    setPrototype(generatedPrototype);
-    toast.success('Prototype generated successfully');
+  // Navigate to prototype list
+  const navigateToList = () => {
+    router.push(`/projects/${id}/prototype`);
+  };
+  
+  // View prototype
+  const viewPrototype = (prototypeId) => {
+    router.push(`/projects/${id}/prototype/${prototypeId}`);
+  };
+  
+  // Back to project
+  const backToProject = () => {
+    router.push(`/projects/${id}`);
+  };
+  
+  // Loading state
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center p-10">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
+      </Layout>
+    );
+  }
+  
+  // Error state
+  if (error) {
+    return (
+      <Layout>
+        <div className="bg-red-50 p-4 rounded-lg text-red-800">
+          <p>{error}</p>
+          <button 
+            onClick={() => loadProjectData(id)}
+            className="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </Layout>
+    );
+  }
+  
+  // Prototype list component
+  const PrototypeList = ({ prototypes = [] }) => {
+    const [localPrototypes, setLocalPrototypes] = useState(prototypes);
+    const [loadingPrototypes, setLoadingPrototypes] = useState(true);
+    
+    // Load prototypes
+    useEffect(() => {
+      if (id) {
+        fetchPrototypes();
+      }
+    }, [id]);
+    
+    // Fetch prototypes
+    const fetchPrototypes = async () => {
+      try {
+        setLoadingPrototypes(true);
+        
+        const response = await fetch(`/api/v1/projects/${id}/prototypes`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch prototypes');
+        }
+        
+        const data = await response.json();
+        setLocalPrototypes(data.prototypes || []);
+        
+        setLoadingPrototypes(false);
+      } catch (err) {
+        console.error('Error fetching prototypes:', err);
+        showNotification({
+          type: 'error',
+          message: 'Failed to load prototypes. Please try again.'
+        });
+        setLoadingPrototypes(false);
+      }
+    };
+    
+    // Delete prototype
+    const deletePrototype = async (prototypeId) => {
+      try {
+        const response = await fetch(`/api/v1/prototypes/${prototypeId}`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete prototype');
+        }
+        
+        // Update local state
+        setLocalPrototypes(prev => prev.filter(p => p.id !== prototypeId));
+        
+        showNotification({
+          type: 'success',
+          message: 'Prototype deleted successfully'
+        });
+      } catch (err) {
+        console.error('Error deleting prototype:', err);
+        showNotification({
+          type: 'error',
+          message: 'Failed to delete prototype. Please try again.'
+        });
+      }
+    };
+    
+    // Loading prototype state
+    if (loadingPrototypes) {
+      return (
+        <div className="flex justify-center items-center p-6">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
+      );
+    }
+    
+    // Empty state
+    if (localPrototypes.length === 0) {
+      return (
+        <div className="bg-gray-50 p-8 rounded-lg text-center">
+          <h3 className="text-lg font-medium text-gray-700 mb-2">No prototypes yet</h3>
+          <p className="text-gray-500 mb-6">
+            Generate your first prototype to visualize your project's requirements
+          </p>
+          <button
+            onClick={navigateToGenerate}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            Generate Prototype
+          </button>
+        </div>
+      );
+    }
+    
+    // Prototype list
+    return (
+      <div>
+        <div className="mb-6 flex justify-between items-center">
+          <h2 className="text-xl font-bold">Project Prototypes</h2>
+          <button
+            onClick={navigateToGenerate}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            Generate New Prototype
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {localPrototypes.map(prototype => (
+            <div key={prototype.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-4">
+                {/* Prototype preview image (if available) */}
+                <div className="bg-gray-100 h-40 rounded-md flex items-center justify-center mb-4">
+                  {prototype.thumbnailUrl ? (
+                    <img 
+                      src={prototype.thumbnailUrl} 
+                      alt={prototype.name} 
+                      className="h-full w-full object-cover" 
+                    />
+                  ) : (
+                    <div className="text-gray-500 text-sm">
+                      {prototype.platform === 'web' ? (
+                        <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                        </svg>
+                      ) : prototype.platform === 'mobile' ? (
+                        <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                      Preview not available
+                    </div>
+                  )}
+                </div>
+                
+                <h3 className="font-medium text-lg mb-1">{prototype.name}</h3>
+                <div className="text-sm text-gray-500 mb-3">
+                  <div className="flex items-center">
+                    <span className="mr-2">
+                      {prototype.platform} • {prototype.fidelity || 'Medium'} fidelity
+                    </span>
+                  </div>
+                  <div>
+                    Created {new Date(prototype.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                    {prototype.status || 'Ready'}
+                  </span>
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => viewPrototype(prototype.id)}
+                      className="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700"
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => deletePrototype(prototype.id)}
+                      className="px-3 py-1 bg-white border border-red-500 text-red-500 text-sm rounded hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
   
   return (
-    <Layout title="Prototype Generation">
-      <div className="py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Prototype Generator</h1>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                {currentProject 
-                  ? `Generate code prototypes for ${currentProject.name} project` 
-                  : 'Select a project to generate prototypes'}
-              </p>
-            </div>
-          </div>
+    <Layout>
+      <Head>
+        <title>
+          {mode === 'view' ? 'View Prototype' : 
+           mode === 'generate' ? 'Generate Prototype' : 
+           'Prototypes'} | {project?.name || 'Project'}
+        </title>
+      </Head>
+      
+      <div className="mb-6">
+        {/* Header navigation */}
+        <div className="flex items-center text-sm mb-4">
+          <button
+            onClick={backToProject}
+            className="text-gray-600 hover:text-gray-800"
+          >
+            Project
+          </button>
+          <span className="mx-2">›</span>
+          <button
+            onClick={navigateToList}
+            className={`${mode === 'list' ? 'text-indigo-600 font-medium' : 'text-gray-600 hover:text-gray-800'}`}
+          >
+            Prototypes
+          </button>
           
-          {/* Content */}
-          {!currentProject ? (
-            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 text-center">
-              <svg 
-                className="mx-auto h-12 w-12 text-gray-400" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24" 
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={1} 
-                  d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" 
-                />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No project selected</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Please select a project from the sidebar first
-              </p>
-            </div>
-          ) : loading ? (
-            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 text-center">
-              <div className="animate-spin h-10 w-10 border-4 border-blue-500 rounded-full border-t-transparent mx-auto"></div>
-              <p className="mt-4 text-gray-600 dark:text-gray-400">Loading requirements...</p>
-            </div>
-          ) : error ? (
-            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 text-center">
-              <div className="text-red-500 text-lg mb-2">Error</div>
-              <p className="text-red-700 dark:text-red-400">{error}</p>
-              <button
-                onClick={fetchRequirements}
-                className="mt-4 px-4 py-2 bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-100 rounded hover:bg-red-200 dark:hover:bg-red-700"
-              >
-                Retry
-              </button>
-            </div>
-          ) : (
+          {mode === 'generate' && (
             <>
-              {/* Prototype Generator */}
-              <div className="mb-8">
-                <PrototypeGenerator 
-                  requirements={requirements} 
-                  onPrototypeGenerated={handlePrototypeGenerated} 
-                />
-              </div>
-              
-              {/* Prototype Viewer */}
-              {prototype && (
-                <div className="mt-8">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Generated Prototype</h2>
-                  <PrototypeViewer prototype={prototype} />
-                </div>
-              )}
+              <span className="mx-2">›</span>
+              <span className="text-indigo-600 font-medium">Generate</span>
+            </>
+          )}
+          
+          {mode === 'view' && (
+            <>
+              <span className="mx-2">›</span>
+              <span className="text-indigo-600 font-medium">View</span>
             </>
           )}
         </div>
       </div>
+      
+      {/* Main content */}
+      {mode === 'list' && (
+        <PrototypeList />
+      )}
+      
+      {mode === 'generate' && (
+        <PrototypeGenerator projectId={id} />
+      )}
+      
+      {mode === 'view' && prototypeId && (
+        <PrototypeViewer prototypeId={prototypeId} projectId={id} />
+      )}
     </Layout>
   );
-};
-
-export default withProtection(PrototypePage);
+}

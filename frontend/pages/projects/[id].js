@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { RoadmapProvider } from '../../contexts/RoadmapContext';
 import { 
   Container, 
   Box, 
@@ -282,9 +283,11 @@ const ProjectDetailPage = () => {
         <meta name="description" content="View and manage project details" />
       </Head>
       <ProjectProvider>
-        <AppLayout>
-          <ProjectDetailContent />
-        </AppLayout>
+        <RoadmapProvider>
+          <AppLayout>
+            <ProjectDetailContent />
+          </AppLayout>
+        </RoadmapProvider>
       </ProjectProvider>
     </>
   );

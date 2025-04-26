@@ -24,6 +24,9 @@ export { useNotifications, NotificationProvider, default as NotificationContext 
 // Collaboration Context
 export { useCollaboration, CollaborationProvider, default as CollaborationContext } from './CollaborationContext';
 
+// Animation Context
+export { useAnimationContext, AnimationProvider, default as AnimationContext } from './AnimationContext';
+
 /**
  * CombinedProvider - Wraps all context providers for easier usage in _app.js
  * Maintains proper nesting order for dependent contexts
@@ -36,21 +39,24 @@ import { ClientProvider } from './ClientContext';
 import { LocalizationProvider } from './LocalizationContext';
 import { NotificationProvider } from './NotificationContext';
 import { CollaborationProvider } from './CollaborationContext';
+import { AnimationProvider } from './AnimationContext';
 
 export const CombinedProvider = ({ children }) => (
-  <UIProvider>
-    <AuthProvider>
-      <LocalizationProvider>
-        <NotificationProvider>
-          <CollaborationProvider>
-            <ProjectProvider>
-              <ClientProvider>
-                {children}
-              </ClientProvider>
-            </ProjectProvider>
-          </CollaborationProvider>
-        </NotificationProvider>
-      </LocalizationProvider>
-    </AuthProvider>
-  </UIProvider>
+  <AnimationProvider>
+    <UIProvider>
+      <AuthProvider>
+        <LocalizationProvider>
+          <NotificationProvider>
+            <CollaborationProvider>
+              <ProjectProvider>
+                <ClientProvider>
+                  {children}
+                </ClientProvider>
+              </ProjectProvider>
+            </CollaborationProvider>
+          </NotificationProvider>
+        </LocalizationProvider>
+      </AuthProvider>
+    </UIProvider>
+  </AnimationProvider>
 );

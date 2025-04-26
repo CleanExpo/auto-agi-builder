@@ -1,177 +1,445 @@
-# Auto AGI Builder UI Animation System
+# Auto AGI Builder Animation System
 
-This document provides an overview of the animation system implemented for the Auto AGI Builder application. The system enhances user experience by adding smooth transitions, loading states, and responsive design features.
+This document provides a comprehensive overview of the animation system implemented in Auto AGI Builder. The animation system is designed to enhance the user interface with smooth, accessible animations that can be easily controlled and customized.
 
 ## Table of Contents
 
-1. [Core Animation Components](#core-animation-components)
-2. [Available Animation Effects](#available-animation-effects)
-3. [Page Transitions](#page-transitions)
-4. [Loading Spinners](#loading-spinners)
-5. [Responsive Containers](#responsive-containers)
-6. [Best Practices](#best-practices)
-7. [Implementation Examples](#implementation-examples)
+1. [Overview](#overview)
+2. [Core Concepts](#core-concepts)
+3. [Components](#components)
+4. [Animation Hooks](#animation-hooks)
+5. [CSS Classes](#css-classes)
+6. [Accessibility](#accessibility)
+7. [Performance Considerations](#performance-considerations)
+8. [Usage Examples](#usage-examples)
+9. [Best Practices](#best-practices)
 
-## Core Animation Components
+## Overview
 
-Our animation system is built on several core components:
+The Auto AGI Builder animation system consists of reusable components, custom hooks, CSS animations, and a global context for controlling animation settings. It's designed to be:
 
-- **animation.css**: Central stylesheet containing all animation definitions
-- **usePageTransition**: Custom hook for handling page transition effects
-- **PageWrapper**: Component that wraps page content with transition animations
-- **LoadingSpinner**: Customizable loading indicators
-- **ResponsiveContainer**: Adaptive layout containers with animation capabilities
+- **Accessible**: Respects user preferences and provides reduced motion options
+- **Performant**: Uses CSS animations and intersection observer for optimal rendering
+- **Flexible**: Allows customization at both component and app-wide levels
+- **Consistent**: Maintains uniform timing and motion styles across the application
 
-## Available Animation Effects
+## Core Concepts
 
-The following animations are available in the system:
+### Animation Context
 
-| Animation Class | Description | Duration |
-|----------------|-------------|----------|
-| `animate-fade-in` | Fade in from transparent to opaque | 300ms |
-| `animate-fade-out` | Fade out from opaque to transparent | 300ms |
-| `animate-fade-in-up` | Fade in while moving upward | 800ms |
-| `animate-scale-in` | Grow from smaller to actual size | 600ms |
-| `animate-slide-in-right` | Slide in from the right side | 500ms |
-| `animate-card-reveal` | Specialized reveal for card elements | 700ms |
-| `animate-pulse-custom` | Pulsing opacity effect (good for loading states) | 2s (infinite) |
+The `AnimationContext` provides global control over animations throughout the application:
 
-Animation delays are also available:
-- `animation-delay-100` through `animation-delay-500` (in 100ms increments)
+- **Enable/Disable Animations**: Turn all animations on or off
+- **Animation Speed**: Set speed to slow, normal, or fast
+- **Reduced Motion**: Comply with accessibility needs
 
-## Page Transitions
+### Animation Hooks
 
-To implement page transitions:
+Custom hooks provide the logic for applying animations to elements:
 
-1. Import the custom hook:
-```javascript
-import { usePageTransition } from '../hooks/usePageTransition';
-```
+- **useAnimation**: Main hook for animating elements
+- **useIntersectionObserver**: Utility hook for detecting viewport visibility
 
-2. Use the hook in your component:
-```javascript
-const { isTransitioning, currentAnimation, navigateWithTransition } = usePageTransition({
-  enterAnimation: 'animate-fade-in',
-  exitAnimation: 'animate-fade-out',
-  duration: 300
-});
-```
+### Animation Components
 
-3. Or use the PageWrapper component:
-```javascript
-import PageWrapper from '../components/layout/PageWrapper';
+Reusable components with built-in animation capabilities:
 
-// In your component's render method:
-<PageWrapper
-  enterAnimation="animate-fade-in"
-  exitAnimation="animate-fade-out"
-  showLoader={true}
+- **AnimatedButton**: Buttons with various animation effects
+- **AnimatedCard**: Card layout with animation support
+- **Other components**: Any component can use the hooks and CSS classes
+
+## Components
+
+### AnimatedButton
+
+A button component with built-in animation effects.
+
+```jsx
+<AnimatedButton
+  variant="primary" // primary, secondary, success, danger, warning, info, light, dark
+  animation="scale" // scale, ripple, glow, bounce, none
+  size="md"        // sm, md, lg
+  onClick={handleClick}
+  className="custom-class"
 >
-  {/* Your page content */}
-</PageWrapper>
+  Click Me
+</AnimatedButton>
 ```
 
-## Loading Spinners
+#### Props
 
-The `LoadingSpinner` component provides customizable loading indicators:
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `variant` | string | `'primary'` | Button visual style |
+| `animation` | string | `'scale'` | Animation effect type |
+| `size` | string | `'md'` | Button size |
+| `onClick` | function | - | Click handler |
+| `className` | string | - | Additional CSS classes |
+| `disabled` | boolean | `false` | Disables the button |
 
-```javascript
-import LoadingSpinner from '../components/common/LoadingSpinner';
+### AnimatedCard
 
-// Basic usage
-<LoadingSpinner />
+A card component with animation capabilities and compound components pattern.
 
-// Customized
-<LoadingSpinner 
-  size="lg" 
-  color="primary" 
-  text="Loading data..."
-  overlay={true}
-/>
-```
-
-Available options:
-- **size**: 'sm' | 'md' | 'lg' | 'xl' (default: 'md')
-- **color**: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' (default: 'primary')
-- **text**: Optional text to display below the spinner
-- **overlay**: Whether to show spinner as full-screen overlay (default: false)
-
-## Responsive Containers
-
-The `ResponsiveContainer` component helps create adaptive layouts with animations:
-
-```javascript
-import ResponsiveContainer from '../components/common/ResponsiveContainer';
-
-// Basic container
-<ResponsiveContainer>
-  {/* Your content */}
-</ResponsiveContainer>
-
-// Customized container
-<ResponsiveContainer
-  size="md"
+```jsx
+<AnimatedCard
   animation="animate-fade-in-up"
-  padding="px-6 py-8"
+  delay={200}
+  className="p-6"
 >
-  {/* Your content */}
-</ResponsiveContainer>
+  <AnimatedCard.Title>Card Title</AnimatedCard.Title>
+  <AnimatedCard.Body>Content goes here...</AnimatedCard.Body>
+  <AnimatedCard.Footer>
+    <button>Action</button>
+  </AnimatedCard.Footer>
+</AnimatedCard>
+```
 
-// Grid layout
-<ResponsiveContainer.Grid
-  cols={{ sm: 1, md: 2, lg: 3, xl: 4 }}
-  gap="gap-6"
-  animation="animate-card-reveal"
->
-  {/* Grid items */}
-</ResponsiveContainer.Grid>
+#### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `animation` | string | `'animate-fade-in'` | CSS animation class |
+| `delay` | number | `0` | Animation delay in ms |
+| `className` | string | - | Additional CSS classes |
+
+#### Sub-components
+
+- `AnimatedCard.Title`: Card title component
+- `AnimatedCard.Body`: Main content area
+- `AnimatedCard.Footer`: Footer area, usually for actions
+- `AnimatedCard.Icon`: Icon placement component
+- `AnimatedCard.Image`: Image component with positioning
+- `AnimatedCard.Stat`: For displaying metric/statistic
+
+## Animation Hooks
+
+### useAnimation
+
+Main hook for applying animations to elements.
+
+```jsx
+const MyComponent = () => {
+  const animation = useAnimation({
+    animation: 'animate-fade-in-up',
+    delay: 200,
+    triggerOnce: true,
+    threshold: 0.2
+  });
+
+  return (
+    <div 
+      ref={animation.ref}
+      className={`my-component ${animation.animationClasses}`}
+    >
+      This content will animate when visible
+    </div>
+  );
+};
+```
+
+#### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `animation` | string | `'animate-fade-in'` | CSS animation class |
+| `delay` | number | `0` | Animation delay in ms |
+| `triggerOnce` | boolean | `true` | If true, only animates first time element enters viewport |
+| `threshold` | number | `0.1` | Amount of element visible before triggering (0-1) |
+
+#### Return Value
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `ref` | React ref | Attach to the element to be animated |
+| `isVisible` | boolean | Whether element is currently visible |
+| `hasAnimated` | boolean | Whether element has animated at least once |
+| `animationClasses` | string | CSS classes to apply the animation |
+| `triggerAnimation` | function | Manually trigger the animation |
+| `resetAnimation` | function | Reset animation state |
+
+### useIntersectionObserver
+
+Utility hook for detecting when an element is visible in the viewport.
+
+```jsx
+const MyComponent = () => {
+  const { ref, isVisible } = useIntersectionObserver({
+    threshold: 0.5,
+    rootMargin: '0px',
+    freezeOnceVisible: true
+  });
+
+  return (
+    <div ref={ref}>
+      {isVisible ? 'I am visible!' : 'Not visible yet'}
+    </div>
+  );
+};
+```
+
+#### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `threshold` | number | `0.1` | Amount of element visible before triggering (0-1) |
+| `rootMargin` | string | `'0px'` | Margin around root element |
+| `root` | Element | `null` | Element used as viewport (default: browser viewport) |
+| `freezeOnceVisible` | boolean | `false` | Keep element marked as visible once triggered |
+
+#### Return Value
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `ref` | React ref | Attach to the element to be observed |
+| `isVisible` | boolean | Whether element is currently visible |
+| `hasIntersected` | boolean | Whether element has been visible at least once |
+
+## CSS Classes
+
+### Entrance Animations
+
+These animations reveal elements as they enter the viewport.
+
+| Class | Description |
+|-------|-------------|
+| `animate-fade-in` | Simple fade in |
+| `animate-fade-in-up` | Fade in while moving up |
+| `animate-fade-in-down` | Fade in while moving down |
+| `animate-scale-in` | Fade in while scaling up |
+| `animate-slide-in-right` | Slide in from right |
+| `animate-slide-in-left` | Slide in from left |
+| `animate-bounce-in` | Bounce in with overshoot |
+| `animate-count-up` | For numeric counters |
+
+### Continuous Animations
+
+These animations run continuously or on interaction.
+
+| Class | Description |
+|-------|-------------|
+| `animate-float` | Gentle floating motion |
+| `animate-glow-pulse` | Pulsing glow effect |
+| `animate-button-press` | Button click animation |
+| `animate-ripple` | Material-style ripple effect |
+| `animate-bounce-once` | Single bounce animation |
+
+### Animation Delay Utilities
+
+Classes to stagger animations.
+
+| Class | Description |
+|-------|-------------|
+| `animation-delay-100` | 100ms delay |
+| `animation-delay-200` | 200ms delay |
+| `animation-delay-300` | 300ms delay |
+| `animation-delay-500` | 500ms delay |
+| `animation-delay-800` | 800ms delay |
+
+### Staggered Children Classes
+
+For creating staggered animations across multiple child elements.
+
+```jsx
+<div className="stagger-children">
+  <div className="staggered-item">First item (100ms delay)</div>
+  <div className="staggered-item">Second item (200ms delay)</div>
+  <div className="staggered-item">Third item (300ms delay)</div>
+</div>
+```
+
+## Accessibility
+
+The animation system is built with accessibility in mind:
+
+1. **Respects User Preferences**:
+   - Honors the `prefers-reduced-motion` media query
+   - Provides UI controls to disable or reduce animations
+
+2. **Reduced Motion Mode**:
+   - Sets animation durations to near-zero
+   - Disables non-essential animations
+   - Can be enabled via AnimationContext
+
+3. **Animation Controls**:
+   - Global enable/disable toggle
+   - Speed settings (slow, normal, fast)
+
+4. **Implementation Example**:
+
+```jsx
+import { useAnimationContext } from '../contexts/AnimationContext';
+
+function AccessibleComponent() {
+  const { animationsEnabled, enableReducedMotion } = useAnimationContext();
+  
+  // Use this info to adjust animations or provide alternative experiences
+  return (
+    <div>
+      {animationsEnabled ? (
+        <AnimatedElement />
+      ) : (
+        <StaticAlternative />
+      )}
+      
+      <button onClick={enableReducedMotion}>
+        Enable Reduced Motion
+      </button>
+    </div>
+  );
+}
+```
+
+## Performance Considerations
+
+1. **CSS Over JavaScript**:
+   - System primarily uses CSS animations for better performance
+   - JavaScript is only used for controlling animation state
+
+2. **Intersection Observer**:
+   - Elements are only animated when visible in viewport
+   - Prevents unnecessary animations off-screen
+
+3. **Hardware Acceleration**:
+   - CSS animations use transforms and opacity for GPU acceleration
+   - Minimizes layout thrashing
+
+4. **Staggered Animations**:
+   - Prevents too many simultaneous animations
+   - Reduces strain on the browser's rendering engine
+
+5. **Best Practices**:
+   - Avoid animating layout properties (width, height, top, left)
+   - Prefer transform and opacity which don't trigger layout
+
+## Usage Examples
+
+### Basic Card Example
+
+```jsx
+import AnimatedCard from '../components/common/AnimatedCard';
+
+function ProductCard({ product }) {
+  return (
+    <AnimatedCard
+      animation="animate-fade-in-up"
+      delay={200}
+      className="p-6"
+    >
+      <AnimatedCard.Image 
+        src={product.image} 
+        alt={product.name} 
+        position="top" 
+      />
+      
+      <AnimatedCard.Title>{product.name}</AnimatedCard.Title>
+      
+      <AnimatedCard.Body>
+        <p>{product.description}</p>
+        
+        <AnimatedCard.Stat
+          value={`$${product.price}`}
+          label="Starting from"
+        />
+      </AnimatedCard.Body>
+      
+      <AnimatedCard.Footer>
+        <AnimatedButton>Add to Cart</AnimatedButton>
+      </AnimatedCard.Footer>
+    </AnimatedCard>
+  );
+}
+```
+
+### Staggered List Example
+
+```jsx
+import { useAnimation } from '../hooks/useAnimation';
+
+function AnimatedList({ items }) {
+  return (
+    <ul className="stagger-children">
+      {items.map((item, index) => (
+        <li 
+          key={item.id}
+          className="staggered-item animate-fade-in-left"
+        >
+          {item.name}
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Custom Animation with Hook
+
+```jsx
+import { useAnimation } from '../hooks/useAnimation';
+
+function FeaturedContent() {
+  const headerAnimation = useAnimation({
+    animation: 'animate-fade-in-down',
+    delay: 100,
+  });
+  
+  const bodyAnimation = useAnimation({
+    animation: 'animate-fade-in',
+    delay: 300,
+  });
+  
+  return (
+    <section className="featured-content">
+      <h2 
+        ref={headerAnimation.ref}
+        className={headerAnimation.animationClasses}
+      >
+        Featured Content
+      </h2>
+      
+      <div
+        ref={bodyAnimation.ref}
+        className={bodyAnimation.animationClasses}
+      >
+        <p>This content will animate with a slight delay after the heading.</p>
+      </div>
+    </section>
+  );
+}
 ```
 
 ## Best Practices
 
-1. **Keep animations subtle**: Aim for subtle effects that enhance rather than distract from the user experience.
+1. **Animation Purpose**:
+   - Use animations to enhance user experience, not distract from it
+   - Animations should communicate information or guide attention
 
-2. **Consider performance**: Use animations sparingly on mobile devices or provide options to reduce motion.
+2. **Animation Timing**:
+   - Keep animations short (300-500ms is often optimal)
+   - Use consistent durations for similar actions
 
-3. **Consistent timing**: Maintain consistent timing for similar animations throughout the application.
+3. **Reduce Motion When Needed**:
+   - Always provide a reduced motion alternative
+   - Test with the `prefers-reduced-motion` media query
 
-4. **Accessibility**: Ensure animations can be disabled for users who prefer reduced motion.
+4. **Performance**:
+   - Limit the number of simultaneous animations
+   - Use staggered animations for lists or grids
+   - Avoid animating expensive CSS properties
 
-5. **Progressive enhancement**: Design functionality to work without animations first, then enhance with animations.
+5. **Consistency**:
+   - Use the provided components and hooks for consistent behavior
+   - Follow the established animation patterns
 
-## Implementation Examples
+6. **Testing**:
+   - Test animations at different speeds
+   - Test with reduced motion enabled
+   - Test on lower-powered devices
 
-### Dashboard with Page Transitions
+7. **Accessibility**:
+   - Never rely on animation to convey essential information
+   - Provide alternative means of accessing content
 
-```jsx
-import React from 'react';
-import PageWrapper from '../components/layout/PageWrapper';
-import ResponsiveContainer from '../components/common/ResponsiveContainer';
-
-const DashboardPage = () => {
-  return (
-    <PageWrapper>
-      <ResponsiveContainer animation="animate-fade-in-up">
-        <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-        
-        <ResponsiveContainer.Grid
-          cols={{ sm: 1, md: 2, lg: 3 }}
-          gap="gap-6"
-        >
-          {/* Dashboard cards with staggered animations */}
-          <div className="animate-card-reveal animation-delay-100">
-            {/* Card 1 content */}
-          </div>
-          <div className="animate-card-reveal animation-delay-200">
-            {/* Card 2 content */}
-          </div>
-          <div className="animate-card-reveal animation-delay-300">
-            {/* Card 3 content */}
-          </div>
-        </ResponsiveContainer.Grid>
-      </ResponsiveContainer>
-    </PageWrapper>
-  );
-};
-
-export default DashboardPage;
+8. **Integration with Application**:
+   - Use the AnimationContext for global control
+   - Allow users to customize animation settings

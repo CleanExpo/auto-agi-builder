@@ -25,13 +25,22 @@ class User(Base):
     last_login = Column(DateTime, nullable=True)
     
     @declared_attr
-    def projects(cls):
+    def owned_projects(cls):
         """
         Relationship to projects owned by this user
-        Will be implemented when Project model is created
         """
-        from app.db.models.project import Project
-        return relationship("Project", back_populates="owner", lazy="dynamic")
+        return relationship("Project", back_populates="owner", foreign_keys="Project.owner_id", lazy="dynamic")
+        
+    # Relationship for projects user contributes to
+    contributed_projects = relationship(
+        "Project", 
+        secondary="project_contributors",
+        back_populates="contributors", 
+        lazy="dynamic"
+    )
+    
+    # Relationship with comments
+    comments = relationship("Comment", back_populates="user")
     
     def __repr__(self):
         return f"<User {self.email}>"

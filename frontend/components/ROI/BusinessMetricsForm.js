@@ -1,515 +1,946 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Divider,
+  Grid,
+  IconButton,
+  TextField,
+  Typography,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  FormHelperText,
+  InputAdornment,
+  Tooltip,
+  Paper,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import InfoIcon from '@mui/icons-material/Info';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import { v4 as uuidv4 } from 'uuid';
+
+import roiService from '../../services/roiService';
 
 /**
- * BusinessMetricsForm Component
- * 
- * Collects essential business metrics for ROI calculations
- * Allows users to input their current business state metrics
+ * BusinessMetricsForm component for collecting cost and benefit metrics for ROI calculation
  */
-const BusinessMetricsForm = ({ 
-  initialData = {}, 
-  onDataChange,
-  className 
+const BusinessMetricsForm = ({
+  projectId,
+  initialData,
+  onSubmit,
+  onCancel,
+  isLoading = false,
 }) => {
-  const [formData, setFormData] = useState({
-    // Revenue metrics
-    annualRevenue: initialData.annualRevenue || '',
-    revenueGrowthRate: initialData.revenueGrowthRate || '',
-    customerCount: initialData.customerCount || '',
-    
-    // Cost metrics
-    laborCostsPerHour: initialData.laborCostsPerHour || '',
-    operationalCostsMonthly: initialData.operationalCostsMonthly || '',
-    customerAcquisitionCost: initialData.customerAcquisitionCost || '',
-    
-    // Efficiency metrics
-    averageTaskCompletionTime: initialData.averageTaskCompletionTime || '',
-    employeeCount: initialData.employeeCount || '',
-    customerChurnRate: initialData.customerChurnRate || '',
-    
-    // Industry and business information
-    industry: initialData.industry || '',
-    businessSize: initialData.businessSize || 'small',
-    region: initialData.region || '',
-  });
+  // Get ROI item types for dropdowns
+  const { costTypes, benefitTypes, frequencies } = roiService.getROIItemTypes();
+
+  // Default form state
+  const defaultFormState = {
+    project_id: projectId || null,
+    name: '',
+    description: '',
+    parameters: {
+      timeline_months: 24,
+      discount_rate: 0.1,
+      currency: 'USD',
+      start_date: new Date().toISOString().split('T')[0],
+    },
+    costs: [
+      {
+        id: uuidv4(),
+        name: '',
+        type: 'development',
+        amount: '',
+        recurring: false,
+        frequency: 'monthly',
+        description: '',
+      },
+    ],
+    benefits: [
+      {
+        id: uuidv4(),
+        name: '',
+        type: 'time_saving',
+        value: '',
+        probability: 1.0,
+        time_to_realize: 0,
+        recurring: false,
+        frequency: 'monthly',
+        description: '',
+      },
+    ],
+  };
+
+  // Form state
+  const [formData, setFormData] = useState(defaultFormState);
   
+  // Form errors
   const [errors, setErrors] = useState({});
-  const [touched, setTouched] = useState({});
   
-  // Industry options
-  const industryOptions = [
-    { value: '', label: 'Select Industry' },
-    { value: 'technology', label: 'Technology & Software' },
-    { value: 'finance', label: 'Finance & Banking' },
-    { value: 'healthcare', label: 'Healthcare' },
-    { value: 'retail', label: 'Retail & E-commerce' },
-    { value: 'manufacturing', label: 'Manufacturing' },
-    { value: 'education', label: 'Education' },
-    { value: 'services', label: 'Professional Services' },
-    { value: 'hospitality', label: 'Hospitality & Tourism' },
-    { value: 'other', label: 'Other' }
-  ];
-  
-  // Business size options
-  const businessSizeOptions = [
-    { value: 'small', label: 'Small (1-50 employees)' },
-    { value: 'medium', label: 'Medium (51-500 employees)' },
-    { value: 'large', label: 'Large (501+ employees)' },
-  ];
-  
-  // Region options
-  const regionOptions = [
-    { value: '', label: 'Select Region' },
-    { value: 'north_america', label: 'North America' },
-    { value: 'europe', label: 'Europe' },
-    { value: 'asia_pacific', label: 'Asia Pacific' },
-    { value: 'latin_america', label: 'Latin America' },
-    { value: 'middle_east', label: 'Middle East & Africa' },
-  ];
-  
-  // Validate form fields
-  const validateField = (name, value) => {
-    let error = '';
-    
-    switch (name) {
-      case 'annualRevenue':
-      case 'laborCostsPerHour':
-      case 'operationalCostsMonthly':
-      case 'customerAcquisitionCost':
-        if (value && (isNaN(value) || parseFloat(value) < 0)) {
-          error = 'Must be a positive number';
-        }
-        break;
-        
-      case 'revenueGrowthRate':
-      case 'customerChurnRate':
-        if (value && (isNaN(value) || parseFloat(value) < 0 || parseFloat(value) > 100)) {
-          error = 'Must be a percentage between 0 and 100';
-        }
-        break;
-        
-      case 'customerCount':
-      case 'employeeCount':
-      case 'averageTaskCompletionTime':
-        if (value && (isNaN(value) || parseInt(value) < 0)) {
-          error = 'Must be a positive whole number';
-        }
-        break;
-        
-      case 'industry':
-      case 'region':
-        if (!value) {
-          error = 'Required field';
-        }
-        break;
-        
-      default:
-        break;
-    }
-    
-    return error;
-  };
-  
-  // Handle input changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    setTouched(prev => ({
-      ...prev,
-      [name]: true
-    }));
-    
-    const error = validateField(name, value);
-    setErrors(prev => ({
-      ...prev,
-      [name]: error
-    }));
-  };
-  
-  // Handle blur events for validation
-  const handleBlur = (e) => {
-    const { name, value } = e.target;
-    
-    setTouched(prev => ({
-      ...prev,
-      [name]: true
-    }));
-    
-    const error = validateField(name, value);
-    setErrors(prev => ({
-      ...prev,
-      [name]: error
-    }));
-  };
-  
-  // Validate all fields
-  const validateForm = () => {
-    const newErrors = {};
-    const newTouched = {};
-    
-    Object.keys(formData).forEach(key => {
-      newErrors[key] = validateField(key, formData[key]);
-      newTouched[key] = true;
-    });
-    
-    setErrors(newErrors);
-    setTouched(newTouched);
-    
-    return Object.values(newErrors).every(error => !error);
-  };
-  
-  // Notify parent component of data changes
+  // Preset selection for parameters
+  const [selectedPreset, setSelectedPreset] = useState('');
+
+  // Initialize form with data if provided
   useEffect(() => {
-    const isValid = Object.values(errors).every(error => !error);
-    if (onDataChange) {
-      onDataChange({
-        data: formData,
-        isValid: isValid && Object.keys(touched).length > 0
+    if (initialData) {
+      // Ensure costs and benefits have IDs
+      const costs = initialData.costs.map((cost) => ({
+        ...cost,
+        id: cost.id || uuidv4(),
+      }));
+      
+      const benefits = initialData.benefits.map((benefit) => ({
+        ...benefit,
+        id: benefit.id || uuidv4(),
+      }));
+      
+      setFormData({
+        ...initialData,
+        project_id: initialData.project_id || projectId,
+        costs,
+        benefits,
+      });
+    } else {
+      setFormData({
+        ...defaultFormState,
+        project_id: projectId,
       });
     }
-  }, [formData, errors, touched, onDataChange]);
-  
-  // Check if field has error
-  const hasError = (field) => {
-    return touched[field] && errors[field];
+  }, [initialData, projectId]);
+
+  // Handle basic field changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+    
+    // Clear error when field is modified
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: null,
+      });
+    }
   };
-  
-  return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow p-6 ${className || ''}`}>
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Business Metrics</h2>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-        Please enter your current business metrics to calculate potential ROI
-      </p>
+
+  // Handle parameter changes
+  const handleParameterChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      parameters: {
+        ...formData.parameters,
+        [name]: name === 'discount_rate' ? parseFloat(value) : value,
+      },
+    });
+    
+    // Clear preset selection when manually changing parameters
+    setSelectedPreset('');
+  };
+
+  // Handle cost item changes
+  const handleCostChange = (index, field, value) => {
+    const updatedCosts = [...formData.costs];
+    
+    if (field === 'recurring') {
+      // Convert to boolean
+      updatedCosts[index][field] = value === 'true';
+    } else if (field === 'amount') {
+      // Ensure numeric value
+      updatedCosts[index][field] = value === '' ? '' : parseFloat(value);
+    } else {
+      updatedCosts[index][field] = value;
+    }
+    
+    setFormData({
+      ...formData,
+      costs: updatedCosts,
+    });
+  };
+
+  // Handle benefit item changes
+  const handleBenefitChange = (index, field, value) => {
+    const updatedBenefits = [...formData.benefits];
+    
+    if (field === 'recurring') {
+      // Convert to boolean
+      updatedBenefits[index][field] = value === 'true';
+    } else if (['value', 'probability', 'time_to_realize'].includes(field)) {
+      // Ensure numeric value
+      updatedBenefits[index][field] = value === '' ? '' : parseFloat(value);
+    } else {
+      updatedBenefits[index][field] = value;
+    }
+    
+    setFormData({
+      ...formData,
+      benefits: updatedBenefits,
+    });
+  };
+
+  // Add a new cost item
+  const handleAddCost = () => {
+    setFormData({
+      ...formData,
+      costs: [
+        ...formData.costs,
+        {
+          id: uuidv4(),
+          name: '',
+          type: 'development',
+          amount: '',
+          recurring: false,
+          frequency: 'monthly',
+          description: '',
+        },
+      ],
+    });
+  };
+
+  // Add a new benefit item
+  const handleAddBenefit = () => {
+    setFormData({
+      ...formData,
+      benefits: [
+        ...formData.benefits,
+        {
+          id: uuidv4(),
+          name: '',
+          type: 'time_saving',
+          value: '',
+          probability: 1.0,
+          time_to_realize: 0,
+          recurring: false,
+          frequency: 'monthly',
+          description: '',
+        },
+      ],
+    });
+  };
+
+  // Remove a cost item
+  const handleRemoveCost = (index) => {
+    const updatedCosts = [...formData.costs];
+    updatedCosts.splice(index, 1);
+    
+    setFormData({
+      ...formData,
+      costs: updatedCosts,
+    });
+  };
+
+  // Remove a benefit item
+  const handleRemoveBenefit = (index) => {
+    const updatedBenefits = [...formData.benefits];
+    updatedBenefits.splice(index, 1);
+    
+    setFormData({
+      ...formData,
+      benefits: updatedBenefits,
+    });
+  };
+
+  // Apply a preset to the parameters
+  const handlePresetChange = (e) => {
+    const presetId = e.target.value;
+    setSelectedPreset(presetId);
+    
+    if (!presetId) return;
+    
+    const presets = roiService.getROIPresets();
+    const preset = presets.find((p) => p.id === presetId);
+    
+    if (preset) {
+      setFormData({
+        ...formData,
+        parameters: {
+          ...formData.parameters,
+          ...preset.parameters,
+        },
+      });
+    }
+  };
+
+  // Validate the form before submission
+  const validateForm = () => {
+    const newErrors = {};
+    
+    // Validate basic fields
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+    
+    // Validate parameters
+    if (formData.parameters.timeline_months < 1) {
+      newErrors['parameters.timeline_months'] = 'Timeline must be at least 1 month';
+    }
+    
+    if (formData.parameters.discount_rate < 0 || formData.parameters.discount_rate > 1) {
+      newErrors['parameters.discount_rate'] = 'Discount rate must be between 0 and 1';
+    }
+    
+    // Validate costs
+    const costErrors = [];
+    formData.costs.forEach((cost, index) => {
+      const costError = {};
       
-      <form className="space-y-6">
-        {/* Business Information */}
-        <div className="space-y-4">
-          <h3 className="text-md font-medium text-gray-800 dark:text-gray-200">Business Information</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Industry */}
-            <div>
-              <label htmlFor="industry" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Industry<span className="text-red-500">*</span>
-              </label>
-              <select
-                id="industry"
-                name="industry"
-                value={formData.industry}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={`w-full py-2 px-3 border ${hasError('industry') ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-              >
-                {industryOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              {hasError('industry') && (
-                <p className="mt-1 text-xs text-red-500">{errors.industry}</p>
+      if (!cost.name.trim()) {
+        costError.name = 'Name is required';
+      }
+      
+      if (cost.amount === '' || isNaN(cost.amount)) {
+        costError.amount = 'Valid amount is required';
+      }
+      
+      if (cost.recurring && !cost.frequency) {
+        costError.frequency = 'Frequency is required for recurring costs';
+      }
+      
+      if (Object.keys(costError).length > 0) {
+        costErrors[index] = costError;
+      }
+    });
+    
+    if (costErrors.length > 0) {
+      newErrors.costs = costErrors;
+    }
+    
+    // Validate benefits
+    const benefitErrors = [];
+    formData.benefits.forEach((benefit, index) => {
+      const benefitError = {};
+      
+      if (!benefit.name.trim()) {
+        benefitError.name = 'Name is required';
+      }
+      
+      if (benefit.value === '' || isNaN(benefit.value)) {
+        benefitError.value = 'Valid value is required';
+      }
+      
+      if (benefit.probability < 0 || benefit.probability > 1) {
+        benefitError.probability = 'Probability must be between 0 and 1';
+      }
+      
+      if (benefit.time_to_realize < 0) {
+        benefitError.time_to_realize = 'Time to realize must be non-negative';
+      }
+      
+      if (benefit.recurring && !benefit.frequency) {
+        benefitError.frequency = 'Frequency is required for recurring benefits';
+      }
+      
+      if (Object.keys(benefitError).length > 0) {
+        benefitErrors[index] = benefitError;
+      }
+    });
+    
+    if (benefitErrors.length > 0) {
+      newErrors.benefits = benefitErrors;
+    }
+    
+    // Ensure at least one cost and one benefit
+    if (formData.costs.length === 0) {
+      newErrors.costsGeneral = 'At least one cost item is required';
+    }
+    
+    if (formData.benefits.length === 0) {
+      newErrors.benefitsGeneral = 'At least one benefit item is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (validateForm()) {
+      // Format date if needed
+      let submissionData = { ...formData };
+      
+      if (submissionData.parameters.start_date) {
+        // Ensure date is in ISO format for API
+        const date = new Date(submissionData.parameters.start_date);
+        submissionData.parameters.start_date = date.toISOString().split('T')[0];
+      }
+      
+      onSubmit(submissionData);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Grid container spacing={3}>
+        {/* Basic Information */}
+        <Grid item xs={12}>
+          <Card>
+            <CardHeader title="ROI Analysis Details" />
+            <Divider />
+            <CardContent>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="ROI Analysis Name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    error={!!errors.name}
+                    helperText={errors.name || 'Give your ROI analysis a descriptive name'}
+                    disabled={isLoading}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    multiline
+                    rows={1}
+                    error={!!errors.description}
+                    helperText={errors.description}
+                    disabled={isLoading}
+                  />
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* ROI Parameters */}
+        <Grid item xs={12}>
+          <Card>
+            <CardHeader 
+              title="ROI Parameters" 
+              action={
+                <FormControl variant="outlined" sx={{ minWidth: 200 }}>
+                  <InputLabel id="preset-label">Apply Preset</InputLabel>
+                  <Select
+                    labelId="preset-label"
+                    value={selectedPreset}
+                    onChange={handlePresetChange}
+                    label="Apply Preset"
+                    disabled={isLoading}
+                  >
+                    <MenuItem value="">
+                      <em>Custom parameters</em>
+                    </MenuItem>
+                    {roiService.getROIPresets().map((preset) => (
+                      <MenuItem key={preset.id} value={preset.id}>
+                        {preset.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              }
+            />
+            <Divider />
+            <CardContent>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Timeline (months)"
+                    name="timeline_months"
+                    value={formData.parameters.timeline_months}
+                    onChange={handleParameterChange}
+                    error={!!errors['parameters.timeline_months']}
+                    helperText={errors['parameters.timeline_months']}
+                    disabled={isLoading}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <Tooltip title="The number of months over which to calculate ROI">
+                            <HelpOutlineIcon fontSize="small" color="action" />
+                          </Tooltip>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Discount Rate"
+                    name="discount_rate"
+                    value={formData.parameters.discount_rate}
+                    onChange={handleParameterChange}
+                    error={!!errors['parameters.discount_rate']}
+                    helperText={
+                      errors['parameters.discount_rate'] ||
+                      'Annual rate for NPV calculation (0.1 = 10%)'
+                    }
+                    disabled={isLoading}
+                    inputProps={{
+                      step: 0.01,
+                      min: 0,
+                      max: 1,
+                    }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <Tooltip title="The discount rate adjusts future cash flows to present value">
+                            <HelpOutlineIcon fontSize="small" color="action" />
+                          </Tooltip>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    fullWidth
+                    select
+                    label="Currency"
+                    name="currency"
+                    value={formData.parameters.currency}
+                    onChange={handleParameterChange}
+                    disabled={isLoading}
+                  >
+                    <MenuItem value="USD">USD ($)</MenuItem>
+                    <MenuItem value="EUR">EUR (€)</MenuItem>
+                    <MenuItem value="GBP">GBP (£)</MenuItem>
+                    <MenuItem value="JPY">JPY (¥)</MenuItem>
+                    <MenuItem value="CAD">CAD ($)</MenuItem>
+                    <MenuItem value="AUD">AUD ($)</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    label="Start Date"
+                    name="start_date"
+                    value={formData.parameters.start_date}
+                    onChange={handleParameterChange}
+                    disabled={isLoading}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Costs */}
+        <Grid item xs={12}>
+          <Card>
+            <CardHeader 
+              title="Costs" 
+              subheader="Enter all costs associated with the project"
+              action={
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddCost}
+                  disabled={isLoading}
+                >
+                  Add Cost
+                </Button>
+              }
+            />
+            <Divider />
+            <CardContent>
+              {errors.costsGeneral && (
+                <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+                  {errors.costsGeneral}
+                </Typography>
               )}
-            </div>
-            
-            {/* Business Size */}
-            <div>
-              <label htmlFor="businessSize" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Business Size
-              </label>
-              <select
-                id="businessSize"
-                name="businessSize"
-                value={formData.businessSize}
-                onChange={handleChange}
-                className="w-full py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                {businessSizeOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Region */}
-            <div>
-              <label htmlFor="region" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Region<span className="text-red-500">*</span>
-              </label>
-              <select
-                id="region"
-                name="region"
-                value={formData.region}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={`w-full py-2 px-3 border ${hasError('region') ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-              >
-                {regionOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              {hasError('region') && (
-                <p className="mt-1 text-xs text-red-500">{errors.region}</p>
+              
+              {formData.costs.map((cost, index) => (
+                <Paper 
+                  key={cost.id} 
+                  elevation={1} 
+                  sx={{ 
+                    p: 2, 
+                    mb: 2,
+                    position: 'relative',
+                    borderLeft: '4px solid #f44336'
+                  }}
+                >
+                  <IconButton
+                    size="small"
+                    onClick={() => handleRemoveCost(index)}
+                    disabled={isLoading || formData.costs.length <= 1}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                    }}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Cost Name"
+                        value={cost.name}
+                        onChange={(e) => handleCostChange(index, 'name', e.target.value)}
+                        error={!!(errors.costs && errors.costs[index]?.name)}
+                        helperText={errors.costs && errors.costs[index]?.name}
+                        disabled={isLoading}
+                        required
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        select
+                        label="Cost Type"
+                        value={cost.type}
+                        onChange={(e) => handleCostChange(index, 'type', e.target.value)}
+                        disabled={isLoading}
+                      >
+                        {costTypes.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Amount"
+                        value={cost.amount}
+                        onChange={(e) => handleCostChange(index, 'amount', e.target.value)}
+                        error={!!(errors.costs && errors.costs[index]?.amount)}
+                        helperText={errors.costs && errors.costs[index]?.amount}
+                        disabled={isLoading}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              {formData.parameters.currency === 'USD' ? '$' : 
+                               formData.parameters.currency === 'EUR' ? '€' : 
+                               formData.parameters.currency === 'GBP' ? '£' : 
+                               formData.parameters.currency === 'JPY' ? '¥' : 
+                               formData.parameters.currency === 'CAD' ? 'C$' : 
+                               formData.parameters.currency === 'AUD' ? 'A$' : '$'}
+                            </InputAdornment>
+                          ),
+                        }}
+                        required
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        select
+                        label="Recurring"
+                        value={cost.recurring.toString()}
+                        onChange={(e) => handleCostChange(index, 'recurring', e.target.value)}
+                        disabled={isLoading}
+                      >
+                        <MenuItem value="false">One-time cost</MenuItem>
+                        <MenuItem value="true">Recurring cost</MenuItem>
+                      </TextField>
+                    </Grid>
+                    {cost.recurring && (
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          select
+                          label="Frequency"
+                          value={cost.frequency}
+                          onChange={(e) => handleCostChange(index, 'frequency', e.target.value)}
+                          error={!!(errors.costs && errors.costs[index]?.frequency)}
+                          helperText={errors.costs && errors.costs[index]?.frequency}
+                          disabled={isLoading}
+                          required={cost.recurring}
+                        >
+                          {frequencies.map((option) => (
+                            <MenuItem key={option.value} value={option.value}>
+                              {option.label}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+                    )}
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Description (optional)"
+                        value={cost.description}
+                        onChange={(e) => handleCostChange(index, 'description', e.target.value)}
+                        multiline
+                        rows={1}
+                        disabled={isLoading}
+                      />
+                    </Grid>
+                  </Grid>
+                </Paper>
+              ))}
+              
+              {formData.costs.length === 0 && (
+                <Typography variant="body2" color="text.secondary" align="center">
+                  No costs added yet. Click "Add Cost" to begin.
+                </Typography>
               )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Revenue Metrics */}
-        <div className="space-y-4">
-          <h3 className="text-md font-medium text-gray-800 dark:text-gray-200">Revenue Metrics</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Annual Revenue */}
-            <div>
-              <label htmlFor="annualRevenue" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Annual Revenue ($)
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 dark:text-gray-400">$</span>
-                </div>
-                <input
-                  type="text"
-                  id="annualRevenue"
-                  name="annualRevenue"
-                  value={formData.annualRevenue}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  placeholder="0.00"
-                  className={`w-full py-2 pl-8 pr-3 border ${hasError('annualRevenue') ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-                />
-              </div>
-              {hasError('annualRevenue') && (
-                <p className="mt-1 text-xs text-red-500">{errors.annualRevenue}</p>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Benefits */}
+        <Grid item xs={12}>
+          <Card>
+            <CardHeader 
+              title="Benefits" 
+              subheader="Enter all benefits expected from the project"
+              action={
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddBenefit}
+                  disabled={isLoading}
+                >
+                  Add Benefit
+                </Button>
+              }
+            />
+            <Divider />
+            <CardContent>
+              {errors.benefitsGeneral && (
+                <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+                  {errors.benefitsGeneral}
+                </Typography>
               )}
-            </div>
-            
-            {/* Revenue Growth Rate */}
-            <div>
-              <label htmlFor="revenueGrowthRate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Revenue Growth Rate (%)
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  id="revenueGrowthRate"
-                  name="revenueGrowthRate"
-                  value={formData.revenueGrowthRate}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  placeholder="0"
-                  className={`w-full py-2 px-3 border ${hasError('revenueGrowthRate') ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 dark:text-gray-400">%</span>
-                </div>
-              </div>
-              {hasError('revenueGrowthRate') && (
-                <p className="mt-1 text-xs text-red-500">{errors.revenueGrowthRate}</p>
+              
+              {formData.benefits.map((benefit, index) => (
+                <Paper 
+                  key={benefit.id} 
+                  elevation={1} 
+                  sx={{ 
+                    p: 2, 
+                    mb: 2,
+                    position: 'relative',
+                    borderLeft: '4px solid #4caf50'
+                  }}
+                >
+                  <IconButton
+                    size="small"
+                    onClick={() => handleRemoveBenefit(index)}
+                    disabled={isLoading || formData.benefits.length <= 1}
+                    sx={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                    }}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                  
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Benefit Name"
+                        value={benefit.name}
+                        onChange={(e) => handleBenefitChange(index, 'name', e.target.value)}
+                        error={!!(errors.benefits && errors.benefits[index]?.name)}
+                        helperText={errors.benefits && errors.benefits[index]?.name}
+                        disabled={isLoading}
+                        required
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        select
+                        label="Benefit Type"
+                        value={benefit.type}
+                        onChange={(e) => handleBenefitChange(index, 'type', e.target.value)}
+                        disabled={isLoading}
+                      >
+                        {benefitTypes.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Value"
+                        value={benefit.value}
+                        onChange={(e) => handleBenefitChange(index, 'value', e.target.value)}
+                        error={!!(errors.benefits && errors.benefits[index]?.value)}
+                        helperText={errors.benefits && errors.benefits[index]?.value}
+                        disabled={isLoading}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              {formData.parameters.currency === 'USD' ? '$' : 
+                               formData.parameters.currency === 'EUR' ? '€' : 
+                               formData.parameters.currency === 'GBP' ? '£' : 
+                               formData.parameters.currency === 'JPY' ? '¥' : 
+                               formData.parameters.currency === 'CAD' ? 'C$' : 
+                               formData.parameters.currency === 'AUD' ? 'A$' : '$'}
+                            </InputAdornment>
+                          ),
+                        }}
+                        required
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Probability"
+                        value={benefit.probability}
+                        onChange={(e) => handleBenefitChange(index, 'probability', e.target.value)}
+                        error={!!(errors.benefits && errors.benefits[index]?.probability)}
+                        helperText={
+                          (errors.benefits && errors.benefits[index]?.probability) ||
+                          'Probability of realizing this benefit (0 to 1)'
+                        }
+                        disabled={isLoading}
+                        inputProps={{
+                          step: 0.1,
+                          min: 0,
+                          max: 1,
+                        }}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <Tooltip title="Probability of 1.0 means 100% certainty, 0.5 means 50% chance">
+                                <HelpOutlineIcon fontSize="small" color="action" />
+                              </Tooltip>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Time to Realize (months)"
+                        value={benefit.time_to_realize}
+                        onChange={(e) => handleBenefitChange(index, 'time_to_realize', e.target.value)}
+                        error={!!(errors.benefits && errors.benefits[index]?.time_to_realize)}
+                        helperText={
+                          (errors.benefits && errors.benefits[index]?.time_to_realize) ||
+                          'When this benefit will start to be realized'
+                        }
+                        disabled={isLoading}
+                        inputProps={{
+                          min: 0,
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        select
+                        label="Recurring"
+                        value={benefit.recurring.toString()}
+                        onChange={(e) => handleBenefitChange(index, 'recurring', e.target.value)}
+                        disabled={isLoading}
+                      >
+                        <MenuItem value="false">One-time benefit</MenuItem>
+                        <MenuItem value="true">Recurring benefit</MenuItem>
+                      </TextField>
+                    </Grid>
+                    {benefit.recurring && (
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          select
+                          label="Frequency"
+                          value={benefit.frequency}
+                          onChange={(e) => handleBenefitChange(index, 'frequency', e.target.value)}
+                          error={!!(errors.benefits && errors.benefits[index]?.frequency)}
+                          helperText={errors.benefits && errors.benefits[index]?.frequency}
+                          disabled={isLoading}
+                          required={benefit.recurring}
+                        >
+                          {frequencies.map((option) => (
+                            <MenuItem key={option.value} value={option.value}>
+                              {option.label}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </Grid>
+                    )}
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Description (optional)"
+                        value={benefit.description}
+                        onChange={(e) => handleBenefitChange(index, 'description', e.target.value)}
+                        multiline
+                        rows={1}
+                        disabled={isLoading}
+                      />
+                    </Grid>
+                  </Grid>
+                </Paper>
+              ))}
+              
+              {formData.benefits.length === 0 && (
+                <Typography variant="body2" color="text.secondary" align="center">
+                  No benefits added yet. Click "Add Benefit" to begin.
+                </Typography>
               )}
-            </div>
-            
-            {/* Customer Count */}
-            <div>
-              <label htmlFor="customerCount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Number of Customers
-              </label>
-              <input
-                type="text"
-                id="customerCount"
-                name="customerCount"
-                value={formData.customerCount}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="0"
-                className={`w-full py-2 px-3 border ${hasError('customerCount') ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-              />
-              {hasError('customerCount') && (
-                <p className="mt-1 text-xs text-red-500">{errors.customerCount}</p>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Cost Metrics */}
-        <div className="space-y-4">
-          <h3 className="text-md font-medium text-gray-800 dark:text-gray-200">Cost Metrics</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Labor Costs */}
-            <div>
-              <label htmlFor="laborCostsPerHour" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Average Labor Cost ($/hour)
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 dark:text-gray-400">$</span>
-                </div>
-                <input
-                  type="text"
-                  id="laborCostsPerHour"
-                  name="laborCostsPerHour"
-                  value={formData.laborCostsPerHour}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  placeholder="0.00"
-                  className={`w-full py-2 pl-8 pr-3 border ${hasError('laborCostsPerHour') ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-                />
-              </div>
-              {hasError('laborCostsPerHour') && (
-                <p className="mt-1 text-xs text-red-500">{errors.laborCostsPerHour}</p>
-              )}
-            </div>
-            
-            {/* Operational Costs */}
-            <div>
-              <label htmlFor="operationalCostsMonthly" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Monthly Operational Costs ($)
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 dark:text-gray-400">$</span>
-                </div>
-                <input
-                  type="text"
-                  id="operationalCostsMonthly"
-                  name="operationalCostsMonthly"
-                  value={formData.operationalCostsMonthly}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  placeholder="0.00"
-                  className={`w-full py-2 pl-8 pr-3 border ${hasError('operationalCostsMonthly') ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-                />
-              </div>
-              {hasError('operationalCostsMonthly') && (
-                <p className="mt-1 text-xs text-red-500">{errors.operationalCostsMonthly}</p>
-              )}
-            </div>
-            
-            {/* Customer Acquisition Cost */}
-            <div>
-              <label htmlFor="customerAcquisitionCost" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Customer Acquisition Cost ($)
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 dark:text-gray-400">$</span>
-                </div>
-                <input
-                  type="text"
-                  id="customerAcquisitionCost"
-                  name="customerAcquisitionCost"
-                  value={formData.customerAcquisitionCost}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  placeholder="0.00"
-                  className={`w-full py-2 pl-8 pr-3 border ${hasError('customerAcquisitionCost') ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-                />
-              </div>
-              {hasError('customerAcquisitionCost') && (
-                <p className="mt-1 text-xs text-red-500">{errors.customerAcquisitionCost}</p>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Efficiency Metrics */}
-        <div className="space-y-4">
-          <h3 className="text-md font-medium text-gray-800 dark:text-gray-200">Efficiency Metrics</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Task Completion Time */}
-            <div>
-              <label htmlFor="averageTaskCompletionTime" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Avg. Task Completion Time (min)
-              </label>
-              <input
-                type="text"
-                id="averageTaskCompletionTime"
-                name="averageTaskCompletionTime"
-                value={formData.averageTaskCompletionTime}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="0"
-                className={`w-full py-2 px-3 border ${hasError('averageTaskCompletionTime') ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-              />
-              {hasError('averageTaskCompletionTime') && (
-                <p className="mt-1 text-xs text-red-500">{errors.averageTaskCompletionTime}</p>
-              )}
-            </div>
-            
-            {/* Employee Count */}
-            <div>
-              <label htmlFor="employeeCount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Number of Employees
-              </label>
-              <input
-                type="text"
-                id="employeeCount"
-                name="employeeCount"
-                value={formData.employeeCount}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="0"
-                className={`w-full py-2 px-3 border ${hasError('employeeCount') ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-              />
-              {hasError('employeeCount') && (
-                <p className="mt-1 text-xs text-red-500">{errors.employeeCount}</p>
-              )}
-            </div>
-            
-            {/* Customer Churn Rate */}
-            <div>
-              <label htmlFor="customerChurnRate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Customer Churn Rate (%)
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  id="customerChurnRate"
-                  name="customerChurnRate"
-                  value={formData.customerChurnRate}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  placeholder="0"
-                  className={`w-full py-2 px-3 border ${hasError('customerChurnRate') ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
-                />
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 dark:text-gray-400">%</span>
-                </div>
-              </div>
-              {hasError('customerChurnRate') && (
-                <p className="mt-1 text-xs text-red-500">{errors.customerChurnRate}</p>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Helper Text */}
-        <div className="text-xs text-gray-500 dark:text-gray-400 italic">
-          <p>Fields marked with <span className="text-red-500">*</span> are required. Leave other fields blank if not applicable.</p>
-          <p className="mt-1">
-            The more information you provide, the more accurate your ROI calculation will be.
-          </p>
-        </div>
-      </form>
-    </div>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Submit Buttons */}
+        <Grid item xs={12}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              variant="outlined"
+              onClick={onCancel}
+              disabled={isLoading}
+              sx={{ mr: 2 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Calculating...' : 'Calculate ROI'}
+            </Button>
+          </Box>
+        </Grid>
+      </Grid>
+    </form>
   );
 };
 
 BusinessMetricsForm.propTypes = {
+  projectId: PropTypes.string,
   initialData: PropTypes.object,
-  onDataChange: PropTypes.func,
-  className: PropTypes.string
+  onSubmit: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  isLoading: PropTypes.bool,
 };
 
 export default BusinessMetricsForm;
