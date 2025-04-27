@@ -1,12 +1,11 @@
-import React from 'react';
 import '../styles/globals.css';
-import { UIProvider } from '../contexts/UIContext';
+import { AllProviders } from '../contexts';
 
 function MyApp({ Component, pageProps }) {
   return (
-    <UIProvider>
+    <AllProviders>
       <Component {...pageProps} />
-    </UIProvider>
+    </AllProviders>
   );
 }
 

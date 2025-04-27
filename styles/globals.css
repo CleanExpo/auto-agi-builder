@@ -1,0 +1,147 @@
+:root {
+  /* AGI Auto Builder brand colors */
+  --primary-color: #1B2E4B; /* Dark navy blue background */
+  --secondary-color: #00B2E3; /* Cyan accent */
+  --accent-color: #8BDB24; /* Lime green accent */
+  --success-color: #8BDB24; /* Using brand green for success */
+  --warning-color: #ffc107;
+  --danger-color: #dc3545;
+  --background-color: #1B2E4B; /* Dark navy blue */
+  --text-color: #ffffff; /* White text for dark background */
+  --card-bg-color: #263b5a; /* Slightly lighter than background for cards */
+  --border-color: #344663; /* Lighter than background for borders */
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.logo {
+  height: 60px;
+  width: auto;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo-text {
+  font-weight: bold;
+  font-size: 1.5rem;
+  color: var(--text-color);
+}
+
+.nav {
+  display: flex;
+  gap: 2rem;
+}
+
+.nav-link {
+  color: var(--text-color);
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: var(--accent-color);
+}
+
+.main {
+  min-height: calc(100vh - 120px);
+  padding: 2rem 0;
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60px;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--secondary-color);
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.btn-accent {
+  background: var(--accent-color);
+  color: var(--primary-color);
+}
+
+.btn-large {
+  padding: 0.75rem 2rem;
+  font-size: 1.2rem;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 1rem;
+  background-color: var(--text-color);
+  color: white;
+  border-radius: 4px;
+  z-index: 1000;
+}
+
+.toast-info {
+  background-color: var(--primary-color);
+}
+
+.toast-success {
+  background-color: var(--success-color);
+}
+
+.toast-warning {
+  background-color: var(--warning-color);
+  color: var(--text-color);
+}
+
+.toast-error {
+  background-color: var(--danger-color);
+}

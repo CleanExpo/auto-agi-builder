@@ -1,134 +1,92 @@
-/* Import Tailwind CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Global styles */
-html,
-body {
-  padding: 0;
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, 
-    Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, 
-    sans-serif;
-  min-height: 100vh;
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-rgb: 10, 10, 10;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white;
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+  font-family: 'Inter', sans-serif;
 }
 
-/* Dark mode transition */
-* {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-duration: 200ms;
-  transition-timing-function: ease-in-out;
-}
-
-/* Form element styles */
-input,
-textarea,
-select {
-  @apply bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 
-    rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500;
+/* Custom utilities */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
 /* Button styles */
 .btn {
-  @apply inline-flex items-center px-4 py-2 border border-transparent 
-    text-sm font-medium rounded-md shadow-sm focus:outline-none 
-    focus:ring-2 focus:ring-offset-2;
+  @apply inline-flex items-center justify-center px-4 py-2 border border-transparent 
+    rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 
+    focus:ring-offset-2 focus:ring-blue-500 transition-colors;
 }
 
 .btn-primary {
-  @apply text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500;
+  @apply bg-blue-600 text-white hover:bg-blue-700;
 }
 
 .btn-secondary {
-  @apply text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 
-    hover:bg-blue-200 dark:hover:bg-blue-900/30 focus:ring-blue-500;
+  @apply bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600;
 }
 
 .btn-danger {
-  @apply text-white bg-red-600 hover:bg-red-700 focus:ring-red-500;
-}
-
-/* Scrollbar styling for Webkit browsers */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-800;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-400 dark:bg-gray-600 rounded;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500 dark:bg-gray-500;
-}
-
-/* Custom focus outline */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 
-    dark:focus:ring-offset-gray-900;
+  @apply bg-red-600 text-white hover:bg-red-700;
 }
 
 /* Card styles */
 .card {
-  @apply bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg;
+  @apply bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden;
 }
 
-.card-header {
-  @apply px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700;
+/* Form styles */
+.form-input {
+  @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+    rounded-md shadow-sm placeholder-gray-400 
+    focus:outline-none focus:ring-blue-500 focus:border-blue-500 
+    dark:bg-gray-700 dark:text-white;
 }
 
-.card-body {
-  @apply px-4 py-5 sm:p-6;
+.form-label {
+  @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
 }
 
-.card-footer {
-  @apply px-4 py-4 sm:px-6 bg-gray-50 dark:bg-gray-700 
-    border-t border-gray-200 dark:border-gray-700;
+.form-error {
+  @apply text-sm text-red-600 dark:text-red-400 mt-1;
 }
 
 /* Animation utilities */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 .animate-fade-in {
   animation: fadeIn 0.3s ease-in-out;
 }
 
-@keyframes slideInFromRight {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-.animate-slide-in-right {
-  animation: slideInFromRight 0.3s ease-in-out;
-}
-
-/* Accessibility utilities */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-/* Responsiveness helpers */
-.responsive-container {
-  @apply w-full mx-auto px-4 sm:px-6 lg:px-8;
-  max-width: 1280px;
+/* Dark mode toggle transition */
+.dark-transition {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }

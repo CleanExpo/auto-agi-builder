@@ -1,8 +1,1 @@
-{ 
-  "name": "auto-agi-builder-public-demo", 
-  "version": "1.0.0", 
-  "description": "Public deployment demo for Auto AGI Builder", 
-  "scripts": { 
-    "start": "serve public" 
-  } 
-} 
+{"name":"auto-agi-builder-public-demo","version":"1.0.0","description":"Public deployment demo for Auto AGI Builder","scripts":{"start":"serve public"},"devDependencies":{"webpack":"^5.88.2","webpack-cli":"^5.1.4"}}

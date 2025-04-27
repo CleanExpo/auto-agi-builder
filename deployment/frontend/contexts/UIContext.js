@@ -1,161 +1,87 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 
-// Create context
-const UIContext = createContext();
+const UIContext = createContext(undefined);
 
-/**
- * Provider component for UI-related state
- * Manages modals, notifications, theme, and other UI elements
- */
-export const UIProvider = ({ children }) => {
-  // Modal state
-  const [modal, setModal] = useState({
-    open: false,
-    type: null,
-    data: null,
-  });
-
-  // Notifications/toast state
-  const [notifications, setNotifications] = useState([]);
-
-  // Theme state (light/dark)
+export function UIProvider({ children }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
 
-  // Loading state for global loading indicators
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Modal actions
-  const openModal = useCallback((type, data = {}) => {
-    setModal({
-      open: true,
-      type,
-      data,
-    });
-  }, []);
-
-  const closeModal = useCallback(() => {
-    setModal({
-      open: false,
-      type: null,
-      data: null,
-    });
-  }, []);
-
-  // Notification/toast actions
-  const addNotification = useCallback((notification) => {
-    const id = Date.now();
+  // Check for dark mode preference on component mount
+  useEffect(() => {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setIsDarkMode(prefersDark);
     
-    // Add new notification
-    setNotifications((prev) => [
-      ...prev,
-      {
-        id,
-        duration: 5000, // Default duration of 5 seconds
-        ...notification,
-      },
-    ]);
-
-    // Auto-remove notification after its duration
-    setTimeout(() => {
-      removeNotification(id);
-    }, notification.duration || 5000);
-
-    return id;
-  }, []);
-
-  const removeNotification = useCallback((id) => {
-    setNotifications((prev) => prev.filter((notification) => notification.id !== id));
-  }, []);
-
-  // Toast convenience methods
-  const toast = {
-    success: (message, options = {}) =>
-      addNotification({ type: 'success', message, ...options }),
-    error: (message, options = {}) =>
-      addNotification({ type: 'error', message, ...options }),
-    warning: (message, options = {}) =>
-      addNotification({ type: 'warning', message, ...options }),
-    info: (message, options = {}) =>
-      addNotification({ type: 'info', message, ...options }),
-  };
-
-  // Theme toggle
-  const toggleDarkMode = useCallback(() => {
-    setIsDarkMode((prev) => !prev);
-    
-    // Update document class for theme
-    if (isDarkMode) {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    } else {
+    // Apply dark mode to document if needed
+    if (prefersDark) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
     }
-  }, [isDarkMode]);
 
-  // Initialize theme from localStorage on client-side
-  React.useEffect(() => {
-    // Check if we're in the browser environment
-    if (typeof window !== 'undefined') {
-      // Check local storage for theme preference
-      const storedTheme = localStorage.getItem('theme');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    // Check for mobile view
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+    
+    checkMobileView();
+    window.addEventListener('resize', checkMobileView);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobileView);
+    };
+  }, []);
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setIsDarkMode((prev) => {
+      const newMode = !prev;
       
-      // Set initial theme based on local storage or system preference
-      if ((storedTheme === 'dark') || (!storedTheme && prefersDark)) {
+      if (newMode) {
         document.documentElement.classList.add('dark');
-        setIsDarkMode(true);
       } else {
         document.documentElement.classList.remove('dark');
-        setIsDarkMode(false);
       }
-    }
-  }, []);
+      
+      return newMode;
+    });
+  };
 
-  // Global loading indicator
-  const showLoading = useCallback(() => {
-    setIsLoading(true);
-  }, []);
+  // Toggle mobile menu
+  const toggleMenu = () => {
+    setIsMenuOpen((prev) => !prev);
+  };
 
-  const hideLoading = useCallback(() => {
-    setIsLoading(false);
-  }, []);
+  // Close mobile menu
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
 
-  // Context value
   const value = {
-    // Modal
-    modal,
-    openModal,
-    closeModal,
-    
-    // Notifications
-    notifications,
-    addNotification,
-    removeNotification,
-    toast,
-    
-    // Theme
     isDarkMode,
     toggleDarkMode,
-    
-    // Loading
-    isLoading,
-    showLoading,
-    hideLoading,
+    isMenuOpen,
+    toggleMenu,
+    closeMenu,
+    isMobileView
   };
 
   return <UIContext.Provider value={value}>{children}</UIContext.Provider>;
-};
+}
 
-// Custom hook to use the UI context
-export const useUI = () => {
+export function useUI() {
   const context = useContext(UIContext);
   
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useUI must be used within a UIProvider');
   }
   
   return context;
-};
+}
+
+// Separate hook for theme-specific functionality
+export function useTheme() {
+  const { isDarkMode, toggleDarkMode } = useUI();
+  
+  return { isDarkMode, toggleDarkMode };
+}
 
 export default UIContext;
