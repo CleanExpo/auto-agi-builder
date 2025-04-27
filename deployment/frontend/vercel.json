@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "github": {
+    "silent": false,
+    "autoAlias": true,
+    "enabled": true
+  },
+  "ignoreCommand": "if [[ $VERCEL_GIT_COMMIT_MESSAGE == *\"[skip deploy]\"* ]]; then exit 0; else exit 1; fi",
+  "redirects": [
+    {
+      "source": "http://:host(.+)",
+      "destination": "https://:host",
+      "statusCode": 308
+    }
+  ]
+}

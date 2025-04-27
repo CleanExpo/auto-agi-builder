@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 const UIContext = createContext(undefined);
 
@@ -6,48 +6,72 @@ export function UIProvider({ children }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
+  const initialized = useRef(false);
 
-  // Check for dark mode preference on component mount
+  // Check for dark mode preference on client side only
   useEffect(() => {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setIsDarkMode(prefersDark);
+    // Only run this effect on the client side
+    if (typeof window === 'undefined') return;
     
-    // Apply dark mode to document if needed
-    if (prefersDark) {
-      document.documentElement.classList.add('dark');
+    try {
+      // Check local storage first
+      const savedDarkMode = localStorage.getItem('darkMode');
+      if (savedDarkMode !== null) {
+        setIsDarkMode(JSON.parse(savedDarkMode));
+      } else {
+        // Then check system preference
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setIsDarkMode(prefersDark);
+      }
+      
+      // Check for mobile view
+      const checkMobileView = () => {
+        setIsMobileView(window.innerWidth < 768);
+      };
+      
+      checkMobileView();
+      window.addEventListener('resize', checkMobileView);
+      
+      // Mark as initialized
+      initialized.current = true;
+      
+      return () => {
+        window.removeEventListener('resize', checkMobileView);
+      };
+    } catch (error) {
+      console.error('Error initializing UI context:', error);
+      // Continue with defaults
     }
-
-    // Check for mobile view
-    const checkMobileView = () => {
-      setIsMobileView(window.innerWidth < 768);
-    };
-    
-    checkMobileView();
-    window.addEventListener('resize', checkMobileView);
-    
-    return () => {
-      window.removeEventListener('resize', checkMobileView);
-    };
   }, []);
 
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => {
-      const newMode = !prev;
-      
-      if (newMode) {
+  // Apply dark mode changes to document (client-side only)
+  useEffect(() => {
+    if (typeof document === 'undefined' || !initialized.current) return;
+    
+    try {
+      if (isDarkMode) {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
       }
       
-      return newMode;
-    });
+      // Save to localStorage (client-side only)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+      }
+    } catch (error) {
+      console.error('Error applying dark mode:', error);
+    }
+  }, [isDarkMode]);
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => !prev);
   };
 
   // Toggle mobile menu
   const toggleMenu = () => {
-    setIsMenuOpen((prev) => !prev);
+    setIsMenuOpen(prev => !prev);
   };
 
   // Close mobile menu

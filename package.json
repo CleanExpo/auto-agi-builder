@@ -1,1 +1,22 @@
-{"name":"auto-agi-builder-public-demo","version":"1.0.0","description":"Public deployment demo for Auto AGI Builder","scripts":{"start":"serve public"},"devDependencies":{"webpack":"^5.88.2","webpack-cli":"^5.1.4"}}
+{
+  "name": "ui-provider-fix",
+  "version": "1.0.0",
+  "description": "Sample app to fix UIProvider issue",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "export": "next export",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^15.3.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.38.0",
+    "eslint-config-next": "^12.3.4"
+  }
+}

@@ -1,33 +1,38 @@
 @echo off
-REM AUTO AGI BUILDER - BUILD PROJECT WITH FIXED UI PROVIDER
-REM This script builds the project after fixing the circular dependency issue
-
-echo ====================================================================
-echo               AUTO AGI BUILDER - BUILD PROJECT
-echo ====================================================================
-echo.
-echo This script will build the Auto AGI Builder project with the fixed
-echo UIProvider and AuthProvider components to resolve the circular
-echo dependency issue.
+echo Building the Auto AGI Builder frontend with context provider fixes...
 echo.
 
-echo Changing to project directory...
-cd /d "C:\Users\PhillMcGurk\OneDrive - Disaster Recovery\1111\Auto AGI Builder\frontend"
+cd deployment\frontend
+echo Changed directory to deployment\frontend
+echo.
 
-echo.
-echo Building the project...
-echo.
+echo Running Next.js build process...
+echo This may take a few minutes...
 call npm run build
 
-echo.
-echo ====================================================================
 if %ERRORLEVEL% EQU 0 (
-  echo BUILD SUCCESSFUL: The "useUI must be used within a UIProvider" error has been resolved!
-  echo The project should now build without prerendering errors.
+  echo.
+  echo ========================================================
+  echo BUILD SUCCESSFUL!
+  echo ========================================================
+  echo.
+  echo The Next.js application has been built successfully!
+  echo Our comprehensive fix solution has been applied:
+  echo  1. Enhanced Context Providers with SSR compatibility
+  echo  2. Next.js configuration updated to exclude problematic pages from SSG
+  echo  3. Webpack configuration customized to skip SSR for specific components
+  echo.
+  echo The application should now be ready for deployment.
+  echo.
 ) else (
-  echo BUILD FAILED: There may still be issues to resolve.
-  echo Check the error messages above for more information.
+  echo.
+  echo ========================================================
+  echo BUILD FAILED!
+  echo ========================================================
+  echo.
+  echo The build process encountered errors. 
+  echo Please check the error messages above.
+  echo.
 )
-echo ====================================================================
-echo.
+
 pause
