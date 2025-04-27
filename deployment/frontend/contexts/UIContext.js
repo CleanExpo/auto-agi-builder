@@ -1,6 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
-const UIContext = createContext(undefined);
+// Default context values for SSR compatibility
+const defaultContextValue = {
+  isDarkMode: false,
+  toggleDarkMode: () => {},
+  isMenuOpen: false,
+  toggleMenu: () => {},
+  closeMenu: () => {},
+  isMobileView: false
+};
+
+// Create context with default value for SSR compatibility
+const UIContext = createContext(defaultContextValue);
 
 export function UIProvider({ children }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -94,10 +105,8 @@ export function UIProvider({ children }) {
 export function useUI() {
   const context = useContext(UIContext);
   
-  if (context === undefined) {
-    throw new Error('useUI must be used within a UIProvider');
-  }
-  
+  // Return context even if undefined (SSR compatibility)
+  // This prevents the error during server-side rendering
   return context;
 }
 

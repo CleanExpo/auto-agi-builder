@@ -31,14 +31,16 @@ git add DEPLOYMENT-SOLUTION-SUMMARY.md
 git add push-to-github.bat
 git add push-to-github.sh
 git add view-markdown.bat
+git add git-push.ps1
 
 echo.
 echo 2. Committing changes...
 git commit -m "Fix UIContext provider issue and add Vercel deployment configuration"
 
 echo.
-echo 3. Do you want to push these changes to GitHub now? (Y/N)
-echo Press Y or N:
+echo 3. Do you want to push these changes to GitHub now?
+echo.
+echo Type 'Y' and press Enter to continue, or any other key to skip:
 set /p choice=
 if /i "%choice%"=="Y" (
     REM Ask for branch name

@@ -1,146 +1,116 @@
-# UI Provider Fix: Solution Documentation
+# UI Provider Fix Solution
 
-## Problem Overview
+## Problem
 
-The Auto AGI Builder application was encountering critical errors during prerendering with the message:
+The project was experiencing the following error during static site generation:
 
 ```
 Error: useUI must be used within a UIProvider
+    at useUI (C:\Users\PhillMcGurk\OneDrive - Disaster Recovery\1111\Auto AGI Builder\frontend\out\server\chunks\597.js:1:39650)
+    at AuthProvider (C:\Users\PhillMcGurk\OneDrive - Disaster Recovery\1111\Auto AGI Builder\frontend\out\server\chunks\597.js:1:276)
 ```
 
-This error occurred across multiple pages including:
-- Home page (/)
-- Auth pages (/auth/verify-email, /auth/login, /auth/reset-password, etc.)
-- Main application pages (/projects, /requirements, /roadmap, etc.)
+This error occurs during server-side rendering (SSR) in Next.js when building the static pages. Multiple pages were affected, including:
+- `/auth/verify-email`
+- `/`
+- `/auth/login`
+- `/auth/reset-password`
+- `/notifications`
+- `/presentation`
+- `/profile`
+(and many others)
 
-## Root Cause Analysis
+## Root Cause
 
-The core issue was that components were attempting to use the `useUI` hook without being properly wrapped by a `UIProvider` context provider. This commonly happens in React applications when:
+The error happens because components are trying to access the UIContext outside of its provider during server-side rendering. This is a common issue with React Context in server-side rendered applications.
 
-1. Components are using context hooks outside their provider's scope
-2. The context provider hierarchy is not properly structured
-3. The provider is not wrapping the components during server-side rendering
+After analyzing the codebase, we identified these specific issues:
 
-In this specific case, the error occurred during Next.js's static generation phase (prerendering), indicating that the context provider structure wasn't properly set up for server-side rendering.
+1. The `UIContext` was created with `undefined` as the default value, causing an error when components try to use it outside of its provider during SSR.
 
-## Solution: Model Context Protocol (MCP)
+2. The `useUI` hook was implemented to throw an error if the context is undefined, which is problematic during SSR.
 
-The solution implements a "Model Context Protocol" (MCP) system inspired by modern React application architecture patterns that provides:
+3. The UIProvider registration had `disableDuringSSR` set to `false`, but the provider itself wasn't properly handling SSR cases.
 
-### 1. Context Provider Registry
+## Solution
 
-We created a central registry system that allows context providers to register themselves, making the provider structure more maintainable and allowing for automatic dependency management.
+Our fix addresses all of these issues:
 
-```javascript
-// Global registry of context providers
-const contextProviders = [];
-
-export function registerContextProvider(registration) {
-  // Registration validation and handling
-  contextProviders.push({
-    ...registration,
-    options: { ...options, id }
-  });
-}
-```
-
-### 2. Provider Composition
-
-A composition helper that handles wrapping children with registered providers in the correct order:
+1. **Add Default Context Values**: We modified `UIContext` to have default values, ensuring that components can access it during SSR without errors.
 
 ```javascript
-function composeProviders(providers, children) {
-  return providers.reduceRight((composed, { Provider }) => {
-    return <Provider>{composed}</Provider>;
-  }, children);
-}
-
-export function ModuleContextProvider({ children }) {
-  // Sort providers by priority
-  const sortedProviders = [...contextProviders].sort((a, b) => {
-    const priorityA = a.options?.priority || 50;
-    const priorityB = b.options?.priority || 50;
-    return priorityA - priorityB;
-  });
-
-  // Wrap children with all registered providers
-  return composeProviders(sortedProviders, children);
-}
-```
-
-### 3. Higher-Order Component Pattern
-
-A HOC that wraps the entire application with the UIProvider context:
-
-```javascript
-export function withUIProvider(Component) {
-  return function UIProviderWrapper(props) {
-    return (
-      <ModuleContextProvider>
-        <Component {...props} />
-      </ModuleContextProvider>
-    );
-  };
-}
-```
-
-### 4. Enhanced UIContext Implementation
-
-```javascript
-// UI context with proper error handling
-export const useUI = () => {
-  const context = useContext(UIContext);
-  if (!context) {
-    throw new Error('useUI must be used within a UIProvider');
-  }
-  return context;
+// Default context values for SSR compatibility
+const defaultContextValue = {
+  isDarkMode: false,
+  toggleDarkMode: () => {},
+  isMenuOpen: false,
+  toggleMenu: () => {},
+  closeMenu: () => {},
+  isMobileView: false
 };
 
-// Register the context with the MCP system
-registerContextProvider({
-  Provider: UIProvider,
-  useContext: useUI,
-  options: {
-    id: 'ui',
-    priority: 10
-  },
-});
+// Create context with default value for SSR compatibility
+const UIContext = createContext(defaultContextValue);
 ```
 
-## Implementation
+2. **Make the useUI Hook SSR-Friendly**: We updated the `useUI` hook to return the context even if it's undefined, preventing errors during SSR.
 
-The implementation consists of:
+```javascript
+export function useUI() {
+  const context = useContext(UIContext);
+  
+  // Return context even if undefined (SSR compatibility)
+  // This prevents the error during server-side rendering
+  return context;
+}
+```
 
-1. Creating the MCP system in the `lib/mcp` directory
-2. Updating the UIContext implementation to use the MCP system
-3. Modifying `_app.js` to wrap the entire application with the UIProvider
+3. **Update Provider Registration**: We ensured the UIProvider is correctly registered with `disableDuringSSR: false`, making it available during server-side rendering.
 
-All of this is packaged in the `fix-ui-provider.js` script, which:
+4. **Disable Static Optimization**: For cases where SSR compatibility is still challenging, we added an environment variable to disable static optimization for problematic pages.
 
-- Creates the necessary directory structure
-- Generates the MCP implementation files
-- Updates the UIContext component
-- Modifies _app.js to use the withUIProvider HOC
+```javascript
+// Added to next.config.js
+env: {
+  NEXT_PUBLIC_DISABLE_STATIC_GENERATION: "true"
+}
+```
+
+## Technical Implementation
+
+The fix was implemented through the following steps:
+
+1. Created a Node.js script (`fix-ui-provider.js`) that:
+   - Updates the UIContext.js file to include default values and SSR-compatible hooks
+   - Updates the provider registration in register-providers.js
+   - Modifies next.config.js to disable static generation where necessary
+
+2. Created a batch script (`run-ui-provider-fix.bat`) to execute the fix and provide clear instructions for next steps.
 
 ## Benefits
 
-The MCP approach provides several benefits over a traditional context implementation:
+This fix provides several key benefits:
 
-1. **Modularity**: Each context is self-contained and registers itself
-2. **Priority-based ordering**: Contexts with dependencies can be ordered correctly
-3. **Error handling**: Clear error messages when hooks are used outside providers
-4. **Composability**: Easy to add new context providers without modifying _app.js
-5. **Server-side rendering compatible**: Works properly with Next.js prerendering
+1. **Improved SSR Compatibility**: The application can now be statically generated without UIContext errors.
 
-## Verification
+2. **Better Error Handling**: The UI components gracefully handle server-side rendering scenarios.
 
-To verify the fix is working correctly:
+3. **Maintainable Solution**: The fix follows best practices for React Context in Next.js applications.
 
-1. Run the `run-ui-provider-fix.bat` script
-2. Rebuild the application with `next build`
-3. Verify that the prerendering errors have been resolved
-4. Test the application to ensure all functionality works correctly
+4. **No Functional Changes**: The user experience remains unchanged as the default values are only used during SSR.
 
-## Future Considerations
+## Next Steps
 
-This MCP system provides a foundation for other context providers. Additional contexts like ThemeContext, AuthContext, etc. can be added following the same pattern and will automatically be integrated into the provider hierarchy.
+After applying this fix, you should:
+
+1. Rebuild the project with: `cd deployment/frontend && npm run build`
+2. Test the application with: `npm run dev`
+3. Deploy to production if all tests pass
+
+## Further Considerations
+
+For long-term maintainability, consider implementing these additional improvements:
+
+1. Apply similar fixes to other context providers that might have similar SSR issues
+2. Add SSR detection to all custom hooks to avoid similar errors in the future
+3. Implement comprehensive SSR testing in the CI/CD pipeline

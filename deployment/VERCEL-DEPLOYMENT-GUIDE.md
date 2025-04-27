@@ -1,83 +1,134 @@
-# Vercel Deployment Guide
+# Vercel Deployment Guide for Auto AGI Builder
 
-This guide explains how to configure automatic deployments for the Auto AGI Builder frontend to Vercel using GitHub Actions.
+This guide provides step-by-step instructions for deploying the Auto AGI Builder application to Vercel. Follow these instructions carefully to ensure a successful deployment with the proper configuration to avoid context provider errors.
 
 ## Prerequisites
 
-- A GitHub repository containing the Auto AGI Builder code
-- A Vercel account (https://vercel.com)
-- Repository write access to set up secrets
+- GitHub account
+- Vercel account (https://vercel.com)
+- Node.js installed locally
 
-## Setting Up Vercel Project
+## Step 1: Project Preparation
 
-1. Log in to your Vercel account
-2. Click "Import Project" to create a new project
-3. Select "Import Git Repository" and choose your GitHub repository
-4. Configure the project:
-   - Framework preset: Next.js
-   - Root directory: `deployment/frontend`
-   - Build command: `npm run build`
-   - Output directory: `.next`
-5. Click "Deploy" to create the initial deployment
+The deployment process has been simplified with automation scripts. Before proceeding, make sure you have:
 
-## Gathering Vercel Credentials
+1. Fixed the UIContext provider error using the disableStaticGeneration option
+2. Set up all required environment variables
+3. Prepared your project for deployment
 
-After creating the Vercel project, you need to gather the necessary credentials to automate future deployments:
+Run the automated setup script to perform all these tasks:
 
-1. Generate a Vercel API token:
-   - Go to your Vercel account settings
-   - Navigate to "Tokens" section
-   - Click "Create" to generate a new token
-   - Give it a name like "GitHub Actions Deployment"
-   - Set the scope as "Full Account" for complete access
-   - Copy the generated token
+```bash
+cd deployment
+run-deployment.bat  # For Windows
+# OR
+node finalize-vercel-deployment.js  # For any OS
+```
 
-2. Get your Vercel Organization ID:
-   - Go to your Vercel dashboard
-   - Click on your organization name (or personal account)
-   - Copy the ID from the URL: `https://vercel.com/[YOUR_ORG_ID]`
+## Step 2: Connect Vercel to GitHub
 
-3. Get your Vercel Project ID:
-   - Go to your project's settings
-   - Find the Project ID in the "General" section
-   - Copy the project ID value
+1. Log in to your Vercel account at https://vercel.com
+2. Click on "Add New..." → "Project"
+3. Select the GitHub option
+4. Authenticate with GitHub if not already connected
+5. Find and select your Auto AGI Builder repository
 
-## Setting Up GitHub Repository Secrets
+## Step 3: Configure Project Settings
 
-Add the following secrets to your GitHub repository:
+Use the following settings when configuring your project:
 
-1. Go to your GitHub repository
-2. Navigate to "Settings" > "Secrets and variables" > "Actions"
-3. Click "New repository secret"
-4. Add the following secrets:
-   - `VERCEL_TOKEN`: Your Vercel API token
-   - `VERCEL_ORG_ID`: Your Vercel Organization ID
-   - `VERCEL_PROJECT_ID`: Your Vercel Project ID
+### Basic Settings
 
-## Understanding Automatic Deployments
+- **Project Name:** auto-agi-builder (or your preferred name)
+- **Framework Preset:** Next.js (Automatically detected)
+- **Root Directory:** `deployment/frontend` (IMPORTANT)
 
-Once set up, the GitHub Action workflow will:
+### Build Settings
 
-1. Deploy to production whenever code is pushed to the `main` branch
-2. Create preview deployments for pull requests
-3. Post preview URLs as comments on the pull request
+- **Build Command:** `npm run build`
+- **Output Directory:** `.next`
+- **Development Command:** `npm run dev`
 
-## Custom Domain Configuration (Optional)
+### Environment Variables
 
-To use a custom domain for your Vercel deployment:
+Add the following environment variables:
 
-1. Go to your Vercel project dashboard
-2. Navigate to "Settings" > "Domains"
+| Variable | Value | Environment |
+|----------|-------|-------------|
+| `VERCEL_PROJECT_ID` | `prj_7uKXTp60gosR1DMXBpOaI0hTyPEO` | Production |
+| `NEXT_PUBLIC_ENVIRONMENT` | `production` | Production |
+| `NEXT_PUBLIC_API_URL` | Your API URL (e.g., `https://api.yourdomain.com`) | Production |
+| `DISABLE_STATIC_GENERATION` | `true` | Production |
+
+*Note: The deployment script automatically adds these to your .env.production file locally.*
+
+## Step 4: Deploy
+
+1. Click the "Deploy" button
+2. Wait for the build and deployment to complete
+3. Once completed, you will receive a URL where your application is deployed (e.g., `https://auto-agi-builder.vercel.app`)
+
+## Step 5: Custom Domain Setup
+
+To use a custom domain with your deployment:
+
+1. In the Vercel dashboard, navigate to your project
+2. Go to "Settings" → "Domains"
 3. Click "Add" and enter your domain name
-4. Follow Vercel's DNS configuration instructions
+4. Follow the instructions in [Custom Domain Setup](./CUSTOM-DOMAIN-SETUP.md) to configure your DNS settings:
+   - **CNAME record:** `www` → `cname.vercel-dns.com.`
+   - **A record:** `@` → `76.76.21.21`
 
-## Troubleshooting
+## Step 6: GitHub Actions Integration (Optional)
 
-If you encounter issues with automatic deployments:
+For automatic deployments when changes are pushed to your GitHub repository:
 
-1. Check GitHub Actions logs for specific error messages
-2. Verify that all GitHub secrets are correctly set
-3. Ensure the workflow file is in the correct location (`.github/workflows/vercel-deployment.yml`)
-4. Confirm the Vercel token has proper permissions
+1. Set up GitHub repository secrets as described in [GitHub Secrets Setup](./github-secrets-setup.md):
+   - `VERCEL_TOKEN`: Your Vercel API token
+   - `VERCEL_ORG_ID`: Your Vercel organization ID
+   - `VERCEL_PROJECT_ID`: `prj_7uKXTp60gosR1DMXBpOaI0hTyPEO`
 
-For persistent issues, try manually deploying to Vercel to test your configuration.
+2. The GitHub Actions workflow is already configured in `.github/workflows/vercel-deployment.yml`
+
+## Troubleshooting Common Issues
+
+### Context Provider Errors
+
+If you encounter "useUI must be used within a UIProvider" or similar errors:
+
+1. Verify `disableStaticGeneration: true` is in your next.config.js
+2. Ensure the `DISABLE_STATIC_GENERATION=true` environment variable is set
+3. Check that proper error boundaries are implemented
+
+### Build Failures
+
+If your build fails:
+
+1. Review the build logs in the Vercel dashboard
+2. Check that all dependencies are correctly listed in package.json
+3. Verify Node.js version compatibility (we recommend Node.js 16+)
+
+### Domain Configuration Issues
+
+If your custom domain isn't working:
+
+1. Verify DNS records are correctly set up as specified in [Custom Domain Setup](./CUSTOM-DOMAIN-SETUP.md)
+2. Check if DNS propagation is complete (can take up to 48 hours)
+3. Ensure SSL certificate has been properly provisioned by Vercel
+
+For more detailed troubleshooting, please refer to [Troubleshooting](./TROUBLESHOOTING.md).
+
+## Monitoring and Logs
+
+After deployment, you can monitor your application:
+
+1. In the Vercel dashboard, go to your project
+2. Click on "Analytics" to view performance metrics
+3. Click on "Logs" to view runtime logs
+
+## Additional Resources
+
+- [Update Environment Variables](./UPDATE-ENV-VARIABLES.md)
+- [Deployment Solution Summary](./DEPLOYMENT-SOLUTION-SUMMARY.md)
+- [Vercel Documentation](https://vercel.com/docs)
+- [Next.js Deployment Documentation](https://nextjs.org/docs/deployment)

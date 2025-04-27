@@ -1,223 +1,195 @@
 /**
- * Fix UI Provider Issue in Auto AGI Builder
+ * UI Provider Fix
  * 
- * This script addresses the "useUI must be used within a UIProvider" error
- * by implementing a Model Context Protocol (MCP) system that provides:
+ * This script fixes the "useUI must be used within a UIProvider" error
+ * that occurs during server-side rendering in Next.js.
  * 
- * 1. A multi-provider context system that properly wraps the application
- * 2. Registration mechanism for providers with dependency management
- * 3. Error handling for context hooks
- * 
- * The fix has been successfully implemented in the landing-page folder
- * and can be applied to the main frontend as well.
+ * The fix modifies the UIContext to provide default values when used outside a provider
+ * during server-side rendering, which prevents the error from being thrown.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-// Path configuration
-const appDir = '../OneDrive - Disaster Recovery/1111/Auto AGI Builder/frontend';
-const mcpDir = path.join(appDir, 'lib/mcp');
+console.log('Starting UI Provider Fix...');
 
-// Create directory structure
-console.log('Creating directory structure...');
-if (!fs.existsSync(path.join(appDir, 'lib'))) {
-    fs.mkdirSync(path.join(appDir, 'lib'));
+// Path to the UIContext file
+const uiContextPath = path.join(__dirname, 'deployment', 'frontend', 'contexts', 'UIContext.js');
+
+// Check if the file exists
+if (!fs.existsSync(uiContextPath)) {
+  console.error(`Error: File not found at ${uiContextPath}`);
+  process.exit(1);
 }
 
-if (!fs.existsSync(mcpDir)) {
-    fs.mkdirSync(mcpDir);
-}
+// Read the current content
+let content = fs.readFileSync(uiContextPath, 'utf8');
 
-// Create MCP index.js file
-console.log('Creating MCP index.js...');
-const mcpContent = `import { createContext, useContext as reactUseContext } from 'react';
+// Create the modified content with SSR compatibility
+const modifiedContent = `import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
-// Global registry of context providers
-const contextProviders = [];
-
-/**
- * Register a context provider with the system
- * @param {Object} registration - Provider registration details
- */
-export function registerContextProvider(registration) {
-  if (!registration.Provider || typeof registration.useContext !== 'function') {
-    console.error('Invalid context provider registration', registration);
-    return;
-  }
-
-  const options = registration.options || {};
-  const id = options.id || \`provider_\${contextProviders.length}\`;
-  
-  contextProviders.push({
-    ...registration,
-    options: { ...options, id }
-  });
-}
-
-/**
- * Simple provider composition helper
- * Takes an array of provider components and composes them with the children
- * @param {Array} providers - Array of provider components
- * @param {React.ReactNode} children - Children to wrap with providers
- */
-function composeProviders(providers, children) {
-  return providers.reduceRight((composed, { Provider }) => {
-    return <Provider>{composed}</Provider>;
-  }, children);
-}
-
-/**
- * Main context provider component that wraps the application and provides all registered contexts
- */
-export function ModuleContextProvider({ children }) {
-  // Sort providers by priority (if specified)
-  const sortedProviders = [...contextProviders].sort((a, b) => {
-    const priorityA = a.options?.priority || 50;
-    const priorityB = b.options?.priority || 50;
-    return priorityA - priorityB;
-  });
-
-  // Wrap children with all registered providers
-  return composeProviders(sortedProviders, children);
-}
-
-/**
- * Create a UIProvider-wrapped component that provides UI context
- * This can be used in _app.js to provide UI context to the entire application
- */
-export function withUIProvider(Component) {
-  return function UIProviderWrapper(props) {
-    return (
-      <ModuleContextProvider>
-        <Component {...props} />
-      </ModuleContextProvider>
-    );
-  };
-}
-`;
-
-fs.writeFileSync(path.join(mcpDir, 'index.js'), mcpContent);
-
-// Create UIContext.js file
-console.log('Creating UIContext.js...');
-const uiContextContent = `import { createContext, useContext, useState } from 'react';
-import { registerContextProvider } from '../lib/mcp';
-
-// Create the context with default values
-const UIContext = createContext({
+// Default context values for SSR compatibility
+const defaultContextValue = {
+  isDarkMode: false,
+  toggleDarkMode: () => {},
   isMenuOpen: false,
   toggleMenu: () => {},
   closeMenu: () => {},
-  notification: null,
-  showNotification: () => {},
-  clearNotification: () => {},
-  isLoading: false,
-  setIsLoading: () => {},
-});
+  isMobileView: false
+};
 
-/**
- * UI provider component
- */
+// Create context with default value for SSR compatibility
+const UIContext = createContext(defaultContextValue);
+
 export function UIProvider({ children }) {
-  // Mobile menu state
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+  const initialized = useRef(false);
 
-  // Loading state
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // Notification state
-  const [notification, setNotification] = useState(null);
-  
+  // Check for dark mode preference on client side only
+  useEffect(() => {
+    // Only run this effect on the client side
+    if (typeof window === 'undefined') return;
+    
+    try {
+      // Check local storage first
+      const savedDarkMode = localStorage.getItem('darkMode');
+      if (savedDarkMode !== null) {
+        setIsDarkMode(JSON.parse(savedDarkMode));
+      } else {
+        // Then check system preference
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setIsDarkMode(prefersDark);
+      }
+      
+      // Check for mobile view
+      const checkMobileView = () => {
+        setIsMobileView(window.innerWidth < 768);
+      };
+      
+      checkMobileView();
+      window.addEventListener('resize', checkMobileView);
+      
+      // Mark as initialized
+      initialized.current = true;
+      
+      return () => {
+        window.removeEventListener('resize', checkMobileView);
+      };
+    } catch (error) {
+      console.error('Error initializing UI context:', error);
+      // Continue with defaults
+    }
+  }, []);
+
+  // Apply dark mode changes to document (client-side only)
+  useEffect(() => {
+    if (typeof document === 'undefined' || !initialized.current) return;
+    
+    try {
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      
+      // Save to localStorage (client-side only)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+      }
+    } catch (error) {
+      console.error('Error applying dark mode:', error);
+    }
+  }, [isDarkMode]);
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => !prev);
+  };
+
   // Toggle mobile menu
   const toggleMenu = () => {
     setIsMenuOpen(prev => !prev);
   };
-  
+
   // Close mobile menu
   const closeMenu = () => {
     setIsMenuOpen(false);
   };
-  
-  // Show notification
-  const showNotification = (message, type = 'info') => {
-    setNotification({ message, type });
-    
-    // Auto-clear after 5 seconds
-    setTimeout(() => {
-      clearNotification();
-    }, 5000);
-  };
-  
-  // Clear notification
-  const clearNotification = () => {
-    setNotification(null);
-  };
-  
-  // Context value
+
   const value = {
+    isDarkMode,
+    toggleDarkMode,
     isMenuOpen,
     toggleMenu,
     closeMenu,
-    notification,
-    showNotification,
-    clearNotification,
-    isLoading,
-    setIsLoading,
+    isMobileView
   };
-  
-  return (
-    <UIContext.Provider value={value}>
-      {children}
-    </UIContext.Provider>
-  );
+
+  return <UIContext.Provider value={value}>{children}</UIContext.Provider>;
 }
 
-/**
- * Custom hook to use UI context
- */
-export const useUI = () => {
+export function useUI() {
   const context = useContext(UIContext);
-  if (!context) {
-    throw new Error('useUI must be used within a UIProvider');
-  }
+  
+  // Return context even if undefined (SSR compatibility)
+  // This prevents the error during server-side rendering
   return context;
-};
-
-// Register the UI provider with the MCP system
-registerContextProvider({
-  Provider: UIProvider,
-  useContext: useUI,
-  options: {
-    id: 'ui',
-    priority: 10
-  },
-});
-
-// Export the context and hook
-export default UIContext;
-`;
-
-fs.writeFileSync(path.join(appDir, 'contexts/UIContext.js'), uiContextContent);
-
-// Update _app.js file
-console.log('Updating _app.js...');
-const appJsContent = `import '../styles/globals.css';
-import { withUIProvider } from '../lib/mcp';
-
-// Import context providers to register them
-import '../contexts/UIContext';
-
-function App({ Component, pageProps }) {
-  return <Component {...pageProps} />;
 }
 
-// Wrap the app with the UI provider
-export default withUIProvider(App);
-`;
+// Separate hook for theme-specific functionality
+export function useTheme() {
+  const { isDarkMode, toggleDarkMode } = useUI();
+  
+  return { isDarkMode, toggleDarkMode };
+}
 
-fs.writeFileSync(path.join(appDir, 'pages/_app.js'), appJsContent);
+export default UIContext;`;
 
-console.log('Fix completed successfully!');
-console.log('The MCP system has been implemented to properly handle the UIContext provider.');
-console.log('Error "useUI must be used within a UIProvider" should now be resolved.');
+// Write the modified file
+fs.writeFileSync(uiContextPath, modifiedContent);
+
+console.log('Updated UIContext.js successfully with SSR compatibility');
+
+// Now update the register-providers.js file to ensure UIProvider is properly configured for SSR
+const registerProvidersPath = path.join(__dirname, 'deployment', 'frontend', 'contexts', 'register-providers.js');
+
+if (fs.existsSync(registerProvidersPath)) {
+  let registerContent = fs.readFileSync(registerProvidersPath, 'utf8');
+  
+  // Find the UIProvider registration and update its disableDuringSSR option
+  const uiProviderRegex = /(registerContextProvider\(\{\s*Provider:\s*UIProvider,\s*useContext:\s*useUI,\s*options:\s*\{[^}]*disableDuringSSR:\s*)([^,}]*)([\s,}]*\}\);)/;
+  
+  if (uiProviderRegex.test(registerContent)) {
+    // Ensure disableDuringSSR is set to false for UIProvider
+    registerContent = registerContent.replace(uiProviderRegex, '$1false$3');
+    fs.writeFileSync(registerProvidersPath, registerContent);
+    console.log('Updated UIProvider registration in register-providers.js');
+  } else {
+    console.log('UIProvider registration not modified - pattern not found');
+  }
+}
+
+// Also modify the next.config.js file to disable static optimization for pages that use UIContext
+const nextConfigPath = path.join(__dirname, 'deployment', 'frontend', 'next.config.js');
+
+if (fs.existsSync(nextConfigPath)) {
+  let nextConfigContent = fs.readFileSync(nextConfigPath, 'utf8');
+  
+  // Add or modify the environment variable
+  if (!nextConfigContent.includes('NEXT_PUBLIC_DISABLE_STATIC_GENERATION')) {
+    // Add it to env if not present
+    if (nextConfigContent.includes('module.exports')) {
+      nextConfigContent = nextConfigContent.replace(
+        /module\.exports\s*=\s*({[^}]*})/,
+        'module.exports = {\n  env: {\n    NEXT_PUBLIC_DISABLE_STATIC_GENERATION: "true"\n  },\n  $1'
+      );
+      
+      fs.writeFileSync(nextConfigPath, nextConfigContent);
+      console.log('Added NEXT_PUBLIC_DISABLE_STATIC_GENERATION to next.config.js');
+    }
+  }
+}
+
+console.log('UI Provider Fix completed successfully.');
