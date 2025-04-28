@@ -1,69 +1,93 @@
 import React from 'react';
 
+/**
+ * ErrorBoundary component to catch JavaScript errors in child components
+ * and display a fallback UI instead of crashing the entire app.
+ */
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
+  // This lifecycle is invoked after an error has been thrown by a descendant component
   static getDerivedStateFromError(error) {
     // Update state so the next render shows the fallback UI
     return { hasError: true, error };
   }
 
+  // This lifecycle is invoked after an error has been thrown by a descendant component
   componentDidCatch(error, errorInfo) {
     // Log the error to an error reporting service
-    console.error("UI Error:", error, errorInfo);
+    console.error("React Error Boundary caught an error:", error, errorInfo);
     
-    // You could send to your own API endpoint or a service like Sentry
-    if (process.env.NODE_ENV === 'production') {
-      try {
-        fetch('/api/log-error', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            error: error.toString(), 
-            errorInfo: JSON.stringify(errorInfo),
-            location: window.location.href,
-            timestamp: new Date().toISOString()
-          })
-        }).catch(e => console.error("Error logging failed:", e));
-      } catch (e) {
-        console.error("Failed to send error report:", e);
-      }
-    }
-
-    // You can also store the error info in state for displaying
-    this.setState({ errorInfo });
+    this.setState({
+      errorInfo
+    });
+    
+    // You could also log to an error reporting service here
+    // Example: logErrorToService(error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
-      // Fallback UI when an error occurs
+      // You can render any custom fallback UI
       return (
-        <div className="error-boundary-container">
-          <div className="error-boundary-content">
-            <h2>Something went wrong</h2>
-            <p>We're sorry for the inconvenience. The issue has been reported to our team.</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="error-boundary-button"
-            >
-              Refresh the page
-            </button>
-            {process.env.NODE_ENV !== 'production' && (
-              <details className="error-details">
-                <summary>Error Details</summary>
-                <pre>{this.state.error && this.state.error.toString()}</pre>
-                <pre>{this.state.errorInfo && this.state.errorInfo.componentStack}</pre>
-              </details>
-            )}
-          </div>
+        <div className="error-boundary-fallback" style={{ 
+          padding: '2rem', 
+          margin: '1rem', 
+          backgroundColor: '#f8f9fa', 
+          border: '1px solid #dee2e6',
+          borderRadius: '0.5rem',
+          boxShadow: '0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)'
+        }}>
+          <h1 style={{ color: '#dc3545' }}>Something went wrong</h1>
+          <p>The application encountered an error. Please try refreshing the page.</p>
+          {process.env.NODE_ENV !== 'production' && (
+            <div>
+              <h2>Error Details</h2>
+              <p style={{ 
+                color: '#6c757d', 
+                fontFamily: 'monospace', 
+                whiteSpace: 'pre-wrap',
+                backgroundColor: '#f1f3f5',
+                padding: '1rem',
+                borderRadius: '0.25rem' 
+              }}>
+                {this.state.error && this.state.error.toString()}
+              </p>
+              <h3>Component Stack</h3>
+              <p style={{ 
+                color: '#6c757d', 
+                fontFamily: 'monospace', 
+                whiteSpace: 'pre-wrap',
+                backgroundColor: '#f1f3f5',
+                padding: '1rem',
+                borderRadius: '0.25rem' 
+              }}>
+                {this.state.errorInfo && this.state.errorInfo.componentStack}
+              </p>
+            </div>
+          )}
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.25rem',
+              cursor: 'pointer',
+              marginTop: '1rem'
+            }}
+          >
+            Reload Page
+          </button>
         </div>
       );
     }
 
-    // When there's no error, render children normally
+    // If there's no error, render the children normally
     return this.props.children;
   }
 }

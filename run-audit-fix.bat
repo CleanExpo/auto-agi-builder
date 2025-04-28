@@ -1,12 +1,13 @@
 @echo off
 echo ===================================================
-echo    Building the Project
+echo    Running npm audit fix for security vulnerabilities
 echo ===================================================
 
 cd deployment\frontend
-call npm run build
+call npm audit fix --force
 
 echo ===================================================
-echo    Build process completed!
+echo    Audit fix completed
 echo ===================================================
+cd ..\..\
 pause

@@ -1,6 +1,6 @@
 @echo off
 echo ===================================================
-echo    Ultimate UI Provider Fix Solution
+echo    Final UI Provider Fix Solution
 echo ===================================================
 
 echo Step 1: Installing required dependencies...
@@ -9,25 +9,18 @@ cd deployment\frontend
 echo Installing required npm packages...
 call npm install recharts date-fns @heroicons/react @headlessui/react --save
 
-echo Step 2: Completely replacing registry.ts...
+echo Step 2: Fixing registry.ts syntax error...
 cd ..\..\
-node fix-registry-ultimate.js
+node fix-registry-properly.js
 
-echo Step 3: Fixing _app.tsx duplication...
+echo Step 3: Building the project...
 cd deployment\frontend
-if exist pages\_app.tsx (
-  echo Moving _app.tsx to _app.tsx.bak to avoid duplication...
-  ren pages\_app.tsx _app.tsx.bak
-)
-
-echo Step 4: Building the project...
 call npm run build
 
 echo ===================================================
 echo    All fixes applied!
 echo ===================================================
 echo All required packages have been installed,
-echo registry.ts has been completely replaced with a corrected version,
-echo and the project has been built.
+echo registry.ts has been fixed, and the project has been built.
 cd ..\..\
 pause

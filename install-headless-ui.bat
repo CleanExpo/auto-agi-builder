@@ -1,12 +1,15 @@
 @echo off
 echo ===================================================
-echo    Building the Project
+echo    Installing @headlessui/react Package
 echo ===================================================
 
 cd deployment\frontend
-call npm run build
+
+echo Installing @headlessui/react...
+call npm install @headlessui/react --save
 
 echo ===================================================
-echo    Build process completed!
+echo    Headless UI installed successfully!
 echo ===================================================
+echo You can now run the build process again.
 pause
