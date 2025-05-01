@@ -1,40 +1,42 @@
 import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 
-const Custom404 = () => {
+export default function Custom404() {
   const router = useRouter();
-
+  
+  // Redirect to home after 5 seconds
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      router.push('/');
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, [router]);
+  
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
       <Head>
         <title>Page Not Found | Auto AGI Builder</title>
-        <meta name="description" content="The page you were looking for could not be found." />
       </Head>
       
-      <div className="text-center max-w-md">
-        <h1 className="text-6xl font-bold text-blue-600 mb-4">404</h1>
-        <h2 className="text-2xl font-semibold mb-4">Page Not Found</h2>
-        <p className="text-gray-600 mb-8">
-          Sorry, the page you are looking for doesn't exist or has been moved.
+      <div className="text-center px-4">
+        <h1 className="text-6xl font-bold text-blue-600 dark:text-blue-400">404</h1>
+        <h2 className="text-3xl font-semibold mt-4 text-gray-800 dark:text-gray-200">Page Not Found</h2>
+        <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
+          Sorry, we couldn't find the page you're looking for.
+        </p>
+        <p className="mt-2 text-gray-500 dark:text-gray-500">
+          You'll be redirected to the home page in 5 seconds.
         </p>
         
-        <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-          <button
-            onClick={() => router.back()}
-            className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-          >
-            Go Back
-          </button>
-          
-          <Link href="/" className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-            Home Page
+        <div className="mt-8">
+          <Link href="/" className="px-6 py-3 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+            Go to Home Page
           </Link>
         </div>
       </div>
     </div>
   );
-};
-
-export default Custom404;
+}

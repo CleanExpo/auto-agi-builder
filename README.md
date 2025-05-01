@@ -1,107 +1,210 @@
-# Auto AGI Builder - Vercel Deployment Toolkit
+# Auto AGI Builder
 
-A comprehensive toolkit for deploying Auto AGI Builder to Vercel, optimized specifically for Node.js 18.18.0 and npm 10.9.0.
+<p align="center">
+  <img src="frontend/public/images/logo.png" alt="Auto AGI Builder Logo" width="200" />
+</p>
+
+<p align="center">
+  <strong>An end-to-end platform for building, deploying, and managing AI-powered applications</strong>
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#deployment">Deployment</a> •
+  <a href="#documentation">Documentation</a> •
+  <a href="#contributing">Contributing</a> •
+  <a href="#license">License</a>
+</p>
 
 ## Overview
 
-This toolkit provides a set of scripts and tools to simplify the deployment process of Auto AGI Builder to Vercel. It includes configuration fixes, memory optimization, and diagnostic tools designed to work with Node.js 18.18.0 and npm 10.9.0.
+Auto AGI Builder is a comprehensive platform that simplifies the process of creating, prototyping, and deploying AGI (Artificial General Intelligence) applications. It provides a structured workflow from requirements gathering to deployment, with built-in collaboration features, prototype generation, and automated testing.
 
-## Requirements
+The platform combines a powerful backend API built with FastAPI and a modern frontend interface built with Next.js, enabling teams to rapidly develop and iterate on AI-powered applications.
 
-- Node.js 18.18.0
-- npm 10.9.0
+## Features
+
+### Project Management
+
+- **Project Dashboard**: Centralized overview of all your AGI projects
+- **Requirements Management**: Define, prioritize, and track project requirements
+- **Roadmap Planning**: Visual roadmap with timeline and kanban views
+- **Client Management**: Manage client information and project associations
+
+### Development Tools
+
+- **Prototype Generation**: Automatically generate interactive prototypes based on requirements
+- **Document Management**: Upload, organize, and share project documents
+- **ROI Calculator**: Evaluate business metrics and potential return on investment
+- **Visualization Tools**: Data visualization components for project insights
+
+### Collaboration Features
+
+- **Comment System**: Contextual comments on requirements, prototypes, and documents
+- **Real-time Collaboration**: Multi-user editing with presence indicators
+- **Notifications**: System-wide notifications for project updates
+- **Export & Sharing**: Schedule and automate exports in various formats
+
+### Security & Administration
+
+- **Authentication**: Secure user authentication and authorization
+- **Profile Management**: User profiles with customizable settings
+- **Localization**: Multi-language support for global teams
+- **Theme Support**: Light and dark mode interface
+
+## System Requirements
+
+- **Node.js**: v16.x or later
+- **Python**: 3.9 or later
+- **MongoDB**: 4.4 or later
+- **NPM**: 7.x or later
+
+## Installation
+
+### Backend Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/auto-agi-builder.git
+cd auto-agi-builder
+
+# Set up Python virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows, use: venv\Scripts\activate
+
+# Install backend dependencies
+cd app
+pip install -r requirements.txt
+
+# Configure environment variables
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+### Frontend Setup
+
+```bash
+# Navigate to the frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Configure environment variables
+cp .env.template .env.local
+# Edit .env.local with your configuration
+```
 
 ## Quick Start
 
-1. **Run the all-in-one deployment script:**
-   ```
-   ./all-in-one-deploy.bat
-   ```
+### Running in Development Mode
 
-2. **Follow the prompts** to deploy to Vercel.
+1. Start the backend server:
 
-3. **Deploy to production** after successful preview:
-   ```
-   vercel --prod
-   ```
+```bash
+cd app
+uvicorn main:app --reload
+```
 
-## Included Tools
+2. In a separate terminal, start the frontend development server:
 
-### Deployment Scripts
+```bash
+cd frontend
+npm run dev
+```
 
-- **`all-in-one-deploy.bat`**: Complete deployment process with Node.js version verification
-- **`minimal-vercel-deploy.bat`**: Simplified deployment focusing on frontend only
-- **`node-version-fix.bat`**: Update all configuration files to use Node.js 18.18.0 and npm 10.9.0
-- **`vercel-static-deploy.bat`**: Deploy using static export to avoid memory issues
+3. Open your browser and navigate to `http://localhost:3000`
 
-### Diagnostic Tools
+### Running with Docker
 
-- **`simplified-mcp.js`**: JavaScript tool for analyzing projects and diagnosing deployment issues
+```bash
+# Build and start all services
+docker-compose up -d
+
+# Access the application at http://localhost:3000
+```
+
+## Deployment
+
+Auto AGI Builder supports multiple deployment options:
+
+### Vercel Deployment (Recommended for Frontend)
+
+```bash
+# Deploy the frontend to Vercel
+cd frontend
+vercel --prod
+```
+
+Or use our automated deployment script:
+
+```bash
+# Run the deployment script
+./run-deploy-fixes.bat
+```
+
+See [DEPLOYMENT-GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed instructions.
+
+### Self-hosted Deployment
+
+Follow our comprehensive guides:
+- [Docker Deployment](docker-deployment.md)
+- [MongoDB Setup](MONGODB-SETUP.md)
+- [Custom Domain Configuration](deployment/CUSTOM-DOMAIN-SETUP.md)
 
 ## Documentation
 
-- **`NodeJS-1818-DEPLOYMENT-GUIDE.md`**: Comprehensive guide for deploying with Node.js 18.18.0 and npm 10.9.0
-- **`README-VERCEL-MCP.md`**: Documentation for the MCP diagnostic server
+### User Guides
 
-## Common Issues & Solutions
+- [Getting Started Guide](docs/getting-started.md)
+- [Project Management](docs/project-management.md)
+- [Requirements Tracking](docs/requirements-tracking.md)
+- [Prototype Generation](docs/prototype-generation.md)
+- [Collaboration Features](docs/collaboration.md)
+- [Export Scheduling](docs/export_scheduling.md)
 
-### Memory Error (137)
+### Developer Documentation
 
-If you encounter "Command exited with 137" errors:
-
-1. Use the `node-version-fix.bat` script to ensure proper Node.js version configuration
-2. Try deploying with `minimal-vercel-deploy.bat` for reduced memory usage
-
-### Missing Prebuilt Output
-
-If you see "The '--prebuilt' option was used, but no prebuilt output found":
-
-1. Remove any existing `.vercel` directory
-2. Use the `all-in-one-deploy.bat` script that properly configures the build
-
-### Package Size Too Large
-
-If your deployment fails due to size limits:
-
-1. Use the `minimal-vercel-deploy.bat` script which creates a strict `.vercelignore`
-2. Ensure your `.vercelignore` file properly excludes large directories
-
-## Using the Diagnostic Tool
-
-```
-# Analyze your project
-node simplified-mcp.js analyze ./
-
-# Generate optimal configuration
-node simplified-mcp.js generate ./ static
-
-# Diagnose a specific error
-node simplified-mcp.js diagnose "your error message"
-```
-
-## Configuration Files
-
-The toolkit manages several configuration files:
-
-- `package.json`: Updated with correct engine requirements
-- `vercel.json`: Configured for optimal deployment settings
-- `.vercelignore`: Strict rules to reduce deployment size
-- `.nvmrc`: Node version specification
-- `.npmrc`: npm configuration
-
-## Advanced Usage
-
-For advanced deployment scenarios, see the comprehensive guide in `NodeJS-1818-DEPLOYMENT-GUIDE.md`.
+- [Architecture Overview](docs/architecture.md)
+- [API Documentation](docs/api.md)
+- [Component Library](docs/components.md)
+- [Contributing Guide](CONTRIBUTING.md)
+- [Deployment Troubleshooting](DEPLOYMENT-TROUBLESHOOTING.md)
 
 ## Troubleshooting
 
-If you encounter any issues:
+For common issues and solutions:
 
-1. Run `node simplified-mcp.js diagnose "your error message"` for analysis
-2. Check that you're using Node.js 18.18.0 and npm 10.9.0
-3. Review the deployment logs for specific errors
-4. Try the minimal deployment approach with `minimal-vercel-deploy.bat`
+- [UI Provider Issues](UI-PROVIDER-CONTEXT-SOLUTION.md)
+- [Domain Configuration](DOMAIN-TROUBLESHOOTING-GUIDE.md)
+- [MongoDB Connection](MONGODB-SETUP-GUIDE.md)
+
+## Contributing
+
+We welcome contributions from the community! Please see our [Contributing Guidelines](CONTRIBUTING.md) for more information.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This toolkit is part of the Auto AGI Builder platform.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgements
+
+- [Next.js](https://nextjs.org/)
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [MongoDB](https://www.mongodb.com/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [React](https://reactjs.org/)
+
+---
+
+<p align="center">
+  Made with ❤️ by the Auto AGI Builder Team
+</p>

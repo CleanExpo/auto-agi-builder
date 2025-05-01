@@ -18,7 +18,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'  # Use the Node version that matches your project requirements
+          node-version: '22'  # Updated to match project's Node.js version requirement
           cache: 'npm'
           cache-dependency-path: ./deployment/frontend/package-lock.json
 

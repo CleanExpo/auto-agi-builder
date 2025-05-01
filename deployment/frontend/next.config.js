@@ -5,6 +5,6 @@ module.exports = {
     ignoreDuringBuilds: true 
   }, 
   env: { 
-    NEXT_PUBLIC_DISABLE_STATIC_GENERATION: 'true' 
+    NEXT_PUBLIC_DISABLE_STATIC_GENERATION: 'true'
   } 
-}; 
+};

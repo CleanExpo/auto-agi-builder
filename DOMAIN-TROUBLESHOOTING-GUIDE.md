@@ -1,122 +1,145 @@
-# Domain Troubleshooting Guide for Auto AGI Builder
+# Auto AGI Builder Domain Troubleshooting Guide
 
-## Problem Diagnosis
+This document provides a comprehensive guide to troubleshooting the domain configuration issues encountered with the Auto AGI Builder application deployment on Vercel.
 
-The Auto AGI Builder application is currently showing a 404 error when accessed via both:
-- www.autoagibuilder.app 
-- auto-agi-builder-git-main-team-agi.vercel.app
+## Current Issues
 
-This indicates that the application's domain configuration in Vercel might have issues, causing pages to not be found.
+1. **404 NOT_FOUND Error**: The site at www.autoagibuilder.app is showing a 404 error with code `NOT_FOUND` and ID `pdx1::glgnz-1745810480987-26e42b46425f`.
+
+2. **UIProvider Error**: While this error has been addressed by the fix-ui-provider.js script, there are still domain-related issues preventing the site from being displayed properly.
+
+3. **Invalid Redirect Pattern**: The vercel.json configuration had an invalid redirect route pattern using `http://:host(.+)` which was causing deployment issues.
 
 ## Root Cause Analysis
 
-After examining the configuration files and error patterns, several potential issues were identified:
+### UI Provider Issues (Fixed)
 
-1. **Missing Domain Aliases**: The Vercel configuration needs explicit aliases for domains
-2. **HTTP to HTTPS Redirects**: Proper redirects are needed for secure connections 
-3. **Domain Configuration in Next.js**: Images and API URLs need domain allowlisting
-4. **Environment Variables**: Application needs proper domain-related environment variables
-5. **SSL Certificate Provisioning**: SSL certificates might still be in the provisioning phase
+The "useUI must be used within a UIProvider" error was caused by:
+1. Server-side rendering attempting to use the UI context without proper initialization
+2. Missing default values for the UIContext during server-side rendering
+3. The error was fixed by modifying the UIContext to provide default values during SSR
 
-## Solution: Domain Fix Tools
+### Domain Configuration Issues (Current)
 
-We've created several tools to help troubleshoot and fix the domain configuration issues:
+The 404 error is likely caused by one or more of the following:
+1. Misconfigured DNS records
+2. Invalid Vercel domain configuration
+3. Incorrect vercel.json settings
+4. Recent deployment not yet propagated globally
 
-1. **fix-domain-issue.js**: Core script that fixes issues with Vercel and Next.js configurations
-2. **run-domain-fix.bat**: Windows batch file for easy execution of the fix script
-3. **verify-domains.js**: Script to verify DNS resolution and HTTPS connectivity
+## Step-by-Step Troubleshooting Guide
 
-## How to Apply the Fix
+### 1. Verify DNS Configuration
 
-1. **Run the domain fix script**:
-   ```
-   run-domain-fix.bat
-   ```
-   Or directly with Node.js:
-   ```
-   node fix-domain-issue.js
-   ```
+DNS records need to be properly configured:
 
-2. **Commit and push changes to your repository**:
-   ```bash
-   git add .
-   git commit -m "Fix domain configuration for Vercel deployment"
-   git push
-   ```
+**For the apex domain (autoagibuilder.app)**:
+- A record should point to `76.76.21.21`
 
-3. **Redeploy your application in Vercel**:
-   - Go to your Vercel dashboard
-   - Find your project
-   - Click "Redeploy" from the dropdown menu
+**For the www subdomain (www.autoagibuilder.app)**:
+- CNAME record should point to `cname.vercel-dns.com`
 
-4. **Verify DNS and HTTPS status**:
-   ```
-   node verify-domains.js
-   ```
-
-## Domain Configuration Checklist
-
-- [x] Vercel configuration updated with domain aliases
-- [x] Proper redirects set up for HTTP to HTTPS
-- [x] Next.js configuration updated with domain settings
-- [x] Environment variables set for domain URLs
-- [x] DNS records set up correctly (CNAME for www, A record for root domain)
-- [ ] Wait for SSL certificate provisioning (can take up to 24 hours)
-
-## Understanding Domain Resolution
-
-For the domain to work properly:
-
-1. DNS records must resolve to Vercel's servers (DNS resolution)
-2. Vercel must recognize the domain as belonging to your project (domain aliases)
-3. SSL certificates must be fully provisioned (HTTPS security)
-4. Application must know its own domain (environment variables)
-
-## SSL Certificate Provisioning
-
-Vercel automatically provisions SSL certificates for your domains. However, this process can take up to 24 hours to complete. During this time, you might see security warnings in your browser, or the site might not load at all.
-
-If you continue to see issues after 24 hours, it's recommended to:
-
-1. Verify your DNS configuration with your domain registrar
-2. Check for any verification issues in the Vercel domain settings
-3. Consider removing and re-adding the domain in Vercel
-
-## Environment Variables
-
-The following environment variables are crucial for proper domain functionality:
-
-```
-NEXT_PUBLIC_APP_URL=https://www.autoagibuilder.app
-NEXT_PUBLIC_API_URL=https://api.autoagibuilder.app
+Commands to verify DNS configuration:
+```sh
+dig a autoagibuilder.app
+dig cname www.autoagibuilder.app
 ```
 
-These variables tell your application what its own domain is, which is essential for proper routing, API calls, and other functionality.
+### 2. Fix Invalid vercel.json Configuration
 
-## Forcing a Redeploy
+The invalid redirect pattern has been fixed with the `fix-vercel-json.js` script, which replaces:
+```json
+{
+  "source": "http://:host(.+)",
+  ...
+}
+```
 
-If the domain still shows 404 errors after applying fixes, try forcing a complete rebuild in Vercel:
+With a proper header-based redirect:
+```json
+{
+  "source": "/(.*)",
+  "destination": "https://www.autoagibuilder.app/$1",
+  "statusCode": 308,
+  "has": [
+    {
+      "type": "header",
+      "key": "x-forwarded-proto",
+      "value": "http"
+    }
+  ]
+}
+```
 
-1. Go to your Vercel dashboard
-2. Navigate to your project settings
-3. Find the "Build & Development Settings" section
-4. Scroll down to "Build Cache" and click "Clear Cache and Redeploy"
+### 3. Verify Domain in Vercel Dashboard
 
-## Checking Vercel Logs
+1. Go to https://vercel.com/dashboard
+2. Select the Auto AGI Builder project
+3. Navigate to Settings > Domains
+4. Ensure both domains (autoagibuilder.app and www.autoagibuilder.app) are properly added
+5. Check for any configuration errors or warnings
+6. If needed, verify domain ownership by adding required TXT records
 
-If you continue to experience issues, check the deployment logs in Vercel:
+### 4. Check for Missing CAA Records
 
-1. Go to your Vercel project dashboard
-2. Click on the latest deployment
-3. Click on "Logs" or "Function Logs"
-4. Look for any errors related to routing or domain configuration
+If you see SSL certificate issues, you may need to add a CAA record:
+```
+0 issue "letsencrypt.org"
+```
 
-## Need Further Assistance?
+### 5. Redeploy and Force HTTPS
 
-If you continue to experience issues after following this guide, you may need to:
+After fixing the configuration:
+1. Run `vercel --prod` to force a redeployment
+2. Wait for deployment to complete
+3. Check domain status in Vercel dashboard
 
-1. Contact Vercel support for assistance with domain configuration
-2. Check if there are any rate limits or restrictions on your Vercel plan
-3. Verify that your domain registrar is properly configured
+### 6. DNS Propagation
 
-Remember: DNS and SSL propagation can take time. Many domain issues resolve themselves after 24-48 hours.
+DNS changes can take up to 48 hours to propagate globally. If you've recently updated the DNS records:
+1. Clear your browser cache
+2. Flush DNS cache on your system
+3. Try accessing the site from different networks or devices
+4. Use a DNS propagation checker website
+
+## Automated Tools
+
+We've created tools to help diagnose and fix these issues:
+
+1. **fix-domain-issues.js**: Analyzes your vercel.json configuration, checks for invalid domain patterns, and provides guidance on proper DNS setup.
+
+2. **run-dns-checks.bat**: Automates the verification process and provides a checklist for DNS configuration.
+
+## Advanced Troubleshooting
+
+If the issue persists after trying the steps above:
+
+1. **Check CAA Records**: Run `dig -t CAA +noall +ans autoagibuilder.app`
+
+2. **Check for _acme-challenge Records**: Run `dig -t TXT _acme-challenge.autoagibuilder.app`
+
+3. **Verify Output Directory**: Make sure the "outputDirectory" in vercel.json matches your project's build output directory.
+
+4. **Check for Competing Configurations**: Make sure no previous deployments or configurations are causing conflicts.
+
+## Recommended Changes
+
+1. Fix DNS Records:
+   - Ensure A record for autoagibuilder.app points to 76.76.21.21
+   - Ensure CNAME record for www.autoagibuilder.app points to cname.vercel-dns.com
+
+2. Update vercel.json:
+   - Use header-based detection for HTTP to HTTPS redirects
+   - Ensure output directory is correctly specified
+   - Add proper environment variables
+
+3. Wait for DNS Propagation:
+   - After making changes, allow time for global propagation
+   - Use `nslookup` or `dig` commands to verify records are being updated
+
+## Additional Resources
+
+- [Vercel Domains Documentation](https://vercel.com/docs/domains/overview)
+- [DNS Propagation Checker](https://www.whatsmydns.net/)
+- [Let's Debug](https://letsdebug.net/) - For SSL certificate issues
+- [DNSViz](https://dnsviz.net/) - For DNS misconfiguration analysis
