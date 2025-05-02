@@ -1,141 +1,90 @@
 import React from 'react';
-import Layout from '../components/Layout';
-import { useUI } from '../contexts';
+import Head from 'next/head';
+import styles from '../styles/Home.module.css';
 
 export default function Home() {
-  const { showToast } = useUI();
+    return (
+        <>
+            <Head>
+                <title>Auto AGI Builder - AI-Powered Application Development</title>
+                <meta name="description" content="Auto AGI Builder streamlines the development process with AI-powered requirements analysis, prototype generation, and ROI calculation tools." />
+                <meta name="keywords" content="AGI, artificial general intelligence, software development, AI-powered development, prototype generation, requirements analysis" />
+                <meta name="author" content="Team AGI" />
 
-  const handleGetStartedClick = () => {
-    showToast('Starting your journey with AGI Auto Builder!', 'success');
-  };
+                {/* Open Graph / Social Media Meta Tags */}
+                <meta property="og:title" content="Auto AGI Builder - AI-Powered Application Development" />
+                <meta property="og:description" content="Streamline your development process with AI-powered tools for requirements analysis, prototype generation, and ROI calculation." />
+                <meta property="og:type" content="website" />
+                <meta property="og:url" content="https://auto-agi-landing-bkssjtyt5-team-agi.vercel.app/" />
+                <meta property="og:image" content="https://auto-agi-landing-bkssjtyt5-team-agi.vercel.app/og-image.png" />
 
-  const features = [
-    {
-      title: 'AI-Powered Development',
-      description: 'Leverage the power of artificial intelligence to accelerate your development process and create innovative software solutions.',
-      icon: '🧠'
-    },
-    {
-      title: 'Visual Prototyping',
-      description: 'Create interactive prototypes in minutes with our intuitive visual interface and smart component library.',
-      icon: '🎨'
-    },
-    {
-      title: 'Code Generation',
-      description: 'Transform your ideas into production-ready code with our advanced code generation capabilities.',
-      icon: '💻'
-    },
-    {
-      title: 'Collaboration Tools',
-      description: 'Work together seamlessly with team members using our real-time collaborative features and project management tools.',
-      icon: '👥'
-    }
-  ];
+                <link rel="icon" type="image/png" href="/favicon.png" />
+            </Head>
 
-  return (
-    <Layout>
-      {/* Hero Section */}
-      <section style={{ 
-        padding: '4rem 0', 
-        textAlign: 'center',
-        background: 'linear-gradient(135deg, var(--primary-color) 0%, #142239 100%)',
-        borderRadius: '10px',
-        marginBottom: '2rem'
-      }}>
-        <h1 style={{ 
-          fontSize: '3rem', 
-          marginBottom: '1.5rem',
-          background: 'linear-gradient(90deg, var(--secondary-color), var(--accent-color))',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          display: 'inline-block'
-        }}>
-          AGI Auto Builder
-        </h1>
-        <p style={{ 
-          fontSize: '1.5rem', 
-          maxWidth: '800px',
-          margin: '0 auto 2rem',
-          lineHeight: '1.6'
-        }}>
-          Build intelligent applications faster with AI-powered tools and automated development workflows
-        </p>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-          <button 
-            className="btn btn-accent btn-large"
-            onClick={handleGetStartedClick}
-          >
-            Get Started
-          </button>
-          <button className="btn btn-large">
-            Learn More
-          </button>
-        </div>
-      </section>
+            <header className={styles.header}>
+                <div className={styles.container}>
+                    <nav className={styles.nav}>
+                        <div className={styles.logo}>Auto AGI Builder</div>
+                        <ul className={styles.navLinks}>
+                            <li><a href="#features">Features</a></li>
+                            <li><a href="#how-it-works">How It Works</a></li>
+                            <li><a href="#pricing">Pricing</a></li>
+                            <li><a href="#contact">Contact</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </header>
 
-      {/* Features Section */}
-      <section>
-        <h2 style={{ 
-          textAlign: 'center', 
-          marginBottom: '2rem',
-          fontSize: '2rem',
-          color: 'var(--secondary-color)'
-        }}>
-          Powerful Features
-        </h2>
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '2rem'
-        }}>
-          {features.map((feature, index) => (
-            <div 
-              key={index} 
-              style={{ 
-                background: 'var(--card-bg-color)',
-                padding: '2rem',
-                borderRadius: '8px',
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                transition: 'transform 0.3s ease',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-5px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{feature.icon}</div>
-              <h3 style={{ color: 'var(--secondary-color)', marginBottom: '1rem' }}>{feature.title}</h3>
-              <p>{feature.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+            <main>
+                {/* Hero Section */}
+                <section className={styles.hero}>
+                    <div className={styles.container}>
+                        <h1>Build Intelligent Applications with AI</h1>
+                        <p>Transform your ideas into reality with our AI-powered development platform</p>
+                        <button className={styles.ctaButton}>Get Started</button>
+                    </div>
+                </section>
 
-      {/* Call to Action */}
-      <section style={{ 
-        textAlign: 'center',
-        marginTop: '4rem',
-        padding: '3rem',
-        background: 'var(--card-bg-color)',
-        borderRadius: '10px'
-      }}>
-        <h2 style={{ 
-          color: 'var(--secondary-color)', 
-          marginBottom: '1rem',
-          fontSize: '2rem'
-        }}>
-          Ready to revolutionize your development process?
-        </h2>
-        <p style={{ marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
-          Join thousands of developers who are building the future with AGI Auto Builder.
-        </p>
-        <button className="btn btn-accent btn-large">
-          Start Building Today
-        </button>
-      </section>
-    </Layout>
-  );
-}
+                {/* Features Section */}
+                <section id="features" className={styles.features}>
+                    <div className={styles.container}>
+                        <h2>Powerful Features</h2>
+                        <div className={styles.featureGrid}>
+                            {/* Feature cards will go here */}
+                        </div>
+                    </div>
+                </section>
+
+                {/* How It Works Section */}
+                <section id="how-it-works" className={styles.howItWorks}>
+                    <div className={styles.container}>
+                        <h2>How It Works</h2>
+                        {/* Steps will go here */}
+                    </div>
+                </section>
+
+                {/* Pricing Section */}
+                <section id="pricing" className={styles.pricing}>
+                    <div className={styles.container}>
+                        <h2>Pricing Plans</h2>
+                        {/* Pricing cards will go here */}
+                    </div>
+                </section>
+
+                {/* Contact Section */}
+                <section id="contact" className={styles.contact}>
+                    <div className={styles.container}>
+                        <h2>Get in Touch</h2>
+                        {/* Contact form will go here */}
+                    </div>
+                </section>
+            </main>
+
+            <footer className={styles.footer}>
+                <div className={styles.container}>
+                    <p>&copy; {new Date().getFullYear()} Auto AGI Builder. All rights reserved.</p>
+                </div>
+            </footer>
+        </>
+    );
+} 
