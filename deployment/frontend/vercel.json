@@ -6,25 +6,27 @@
       "src": "package.json",
       "use": "@vercel/next",
       "config": {
+        "nextRoot": ".",
         "skipAutoInstall": false
       }
     }
   ],
   "env": {
-    "NEXT_PUBLIC_DISABLE_STATIC_GENERATION": "true"
+    "NEXT_PUBLIC_DISABLE_STATIC_GENERATION": "true",
+    "NEXT_PRIVATE_TARGET": "serverless"
   },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/clients/:id",
-      "dest": "/clients/[id]"
+      "source": "/clients/:id*",
+      "destination": "/clients/[id]"
     },
     {
-      "src": "/projects/:id",
-      "dest": "/projects/[id]"
+      "source": "/projects/:id*",
+      "destination": "/projects/[id]"
     },
     {
-      "src": "/scheduled-exports/:id",
-      "dest": "/scheduled-exports/[id]"
+      "source": "/scheduled-exports/:id*",
+      "destination": "/scheduled-exports/[id]"
     }
   ]
 }

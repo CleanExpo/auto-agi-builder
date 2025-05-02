@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../contexts/AuthContext';
 import LocalizationSettings from '../../components/localization/LocalizationSettings';
+import { getServerSideProps as baseGetServerSideProps } from '../../lib/mcp/provider';
 
 const LocalizationPage = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -75,5 +76,16 @@ const LocalizationPage = () => {
     </>
   );
 };
+
+export async function getServerSideProps(context) {
+  // Server-side data fetching for localization settings
+  const localizationData = await fetchLocalizationData();
+  
+  return {
+    props: {
+      localization: localizationData
+    }
+  };
+}
 
 export default LocalizationPage;
