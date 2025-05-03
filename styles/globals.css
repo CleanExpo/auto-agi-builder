@@ -1,12 +1,12 @@
 :root {
   /* AGI Auto Builder brand colors */
-  --primary-color: #1B2E4B; /* Dark navy blue background */
-  --secondary-color: #00B2E3; /* Cyan accent */
-  --accent-color: #8BDB24; /* Lime green accent */
-  --success-color: #8BDB24; /* Using brand green for success */
+  --primary-color: #1b2e4b; /* Dark navy blue background */
+  --secondary-color: #00b2e3; /* Cyan accent */
+  --accent-color: #8bdb24; /* Lime green accent */
+  --success-color: #8bdb24; /* Using brand green for success */
   --warning-color: #ffc107;
   --danger-color: #dc3545;
-  --background-color: #1B2E4B; /* Dark navy blue */
+  --background-color: #1b2e4b; /* Dark navy blue */
   --text-color: #ffffff; /* White text for dark background */
   --card-bg-color: #263b5a; /* Slightly lighter than background for cards */
   --border-color: #344663; /* Lighter than background for borders */
@@ -16,8 +16,8 @@ html,
 body {
   padding: 0;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans,
+    Helvetica Neue, sans-serif;
   background-color: var(--background-color);
   color: var(--text-color);
 }
