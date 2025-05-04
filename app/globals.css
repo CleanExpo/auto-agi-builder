@@ -2,24 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --primary-color: #2563eb;
-  --primary-dark: #1d4ed8;
-  --primary-light: #3b82f6;
-  --secondary-color: #10b981;
-  --dark-color: #1f2937;
-  --light-color: #f9f9f9;
-  --text-color: #333;
-  --light-text: #fff;
-  --accent-color: #f59e0b;
-  --danger-color: #ef4444;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
-  --transition-speed: 0.3s;
-  --foreground-rgb: 255, 255, 255;
-  --background-rgb: 23, 35, 64;
+@layer base {
+  :root {
+    --background: 23 35 64;
+    --foreground: 255 255 255;
+    --primary: 0 168 232;
+    --primary-foreground: 255 255 255;
+    --secondary: 139 219 36;
+    --secondary-foreground: 0 0 0;
+    --muted: 42 58 90;
+    --muted-foreground: 255 255 255;
+    --accent: 0 181 226;
+    --accent-foreground: 0 0 0;
+    --border: 42 58 90;
+    --input: 42 58 90;
+    --ring: 0 168 232;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .container {
+    @apply mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors 
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 
+    disabled:opacity-50 disabled:pointer-events-none ring-offset-background;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90;
+  }
+
+  .btn-outline {
+    @apply border border-input hover:bg-accent hover:text-accent-foreground;
+  }
+
+  .btn-ghost {
+    @apply hover:bg-accent hover:text-accent-foreground;
+  }
 }
 
 /* Global Styles */
@@ -32,8 +69,8 @@
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-rgb));
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
-    "Helvetica Neue", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
   line-height: 1.6;
   /* color: rgb(var(--foreground-rgb));
   background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb)); */
@@ -79,7 +116,11 @@ header .container {
 }
 
 .logo span {
-  background: linear-gradient(135deg, var(--secondary-color), var(--accent-color));
+  background: linear-gradient(
+    135deg,
+    var(--secondary-color),
+    var(--accent-color)
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -180,7 +221,11 @@ nav {
   font-size: 3rem;
   line-height: 1.2;
   margin-bottom: 1.5rem;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -231,7 +276,11 @@ nav {
   transform: translateX(-50%);
   width: 80px;
   height: 4px;
-  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+  background: linear-gradient(
+    90deg,
+    var(--primary-color),
+    var(--secondary-color)
+  );
   border-radius: 2px;
 }
 
@@ -253,7 +302,8 @@ nav {
   border-radius: 8px;
   background-color: white;
   box-shadow: var(--shadow-md);
-  transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+  transition: transform var(--transition-speed) ease,
+    box-shadow var(--transition-speed) ease;
   position: relative;
   overflow: hidden;
   border-top: 4px solid var(--primary-color);
@@ -272,7 +322,11 @@ nav {
   left: 0;
   right: 0;
   height: 0;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(16, 185, 129, 0.1));
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.1),
+    rgba(16, 185, 129, 0.1)
+  );
   z-index: -1;
   transition: height 0.3s ease;
 }
@@ -432,7 +486,11 @@ nav {
 /* CTA Section */
 .cta {
   padding: 6rem 0;
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  background: linear-gradient(
+    135deg,
+    var(--primary-color),
+    var(--primary-dark)
+  );
   color: white;
   text-align: center;
 }
