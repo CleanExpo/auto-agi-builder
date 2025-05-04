@@ -12,6 +12,10 @@ const nextConfig = {
   output: 'standalone',
   experimental: {
     outputFileTracingRoot: undefined,
+  },
+  distDir: '.next',
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
   }
 }
 
