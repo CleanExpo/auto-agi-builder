@@ -372,14 +372,13 @@ export default function LeadGenerationForm({
                   </FormControl>
                   {fieldConfig.description && (
                     <FormDescription>{fieldConfig.description}</FormDescription>
-                    )}
-                  </>
+                  )}
+                </>
               )}
               <FormMessage />
             </FormItem>
-           )}
-)}
-        </FormField>
+          )}
+        />
       );
     });
   };
