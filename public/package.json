@@ -1,8 +1,0 @@
-{ 
-  "name": "auto-agi-builder-public", 
-  "version": "1.0.0", 
-  "description": "Public static site for Auto AGI Builder", 
-  "scripts": { 
-    "start": "serve -s ." 
-  } 
-} 

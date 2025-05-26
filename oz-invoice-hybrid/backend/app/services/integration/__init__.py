@@ -1,3 +1,0 @@
-"""
-Integration services package initialization.
-"""
